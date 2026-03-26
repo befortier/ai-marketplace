@@ -1,0 +1,15 @@
+{
+  "name": "marketplace",
+  "description": "Marketplace management tools for creating, updating, and validating plugins and marketplace.json entries",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "marketplace",
+    "plugins",
+    "management",
+    "validation",
+    "scaffolding"
+  ]
+}
