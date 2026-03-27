@@ -43,6 +43,44 @@
         "mapper",
         "navigation"
       ]
+    },
+    {
+      "name": "react-frontend",
+      "description": "React frontend skills — performance best practices, composition patterns, and web design/accessibility guidelines. Use when building or reviewing React components.",
+      "version": "1.0.0",
+      "source": "./plugins/react-frontend",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "react",
+        "frontend",
+        "performance",
+        "composition",
+        "accessibility",
+        "ux",
+        "typescript",
+        "nextjs"
+      ]
+    },
+    {
+      "name": "node-backend",
+      "description": "Node/Express backend skills — TypeScript database layer patterns and Express route handler conventions. Use when building or reviewing backend services.",
+      "version": "1.0.0",
+      "source": "./plugins/node-backend",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "node",
+        "express",
+        "backend",
+        "typescript",
+        "database",
+        "repository",
+        "api",
+        "routes"
+      ]
     }
   ]
 }

@@ -1,0 +1,18 @@
+{
+  "name": "node-backend",
+  "description": "Node/Express backend skills — TypeScript database layer patterns (DatabaseClient, Repository, Service) and Express route handler conventions. Use when building or reviewing backend services.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "backend",
+    "typescript",
+    "database",
+    "repository",
+    "api",
+    "routes"
+  ]
+}
