@@ -63,6 +63,18 @@ public actor InMemoryPointPassStore: PointPassStore {
 }
 ```
 
+## Package Dependency
+
+Add `swift-async-algorithms` to `Package.swift` when using this store pattern. It provides `combineLatest` and `chain` for ViewModels that observe multiple streams.
+
+```swift
+// Package.swift
+.package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0")
+
+// Target dependency
+.product(name: "AsyncAlgorithms", package: "swift-async-algorithms")
+```
+
 ## Where It Lives
 
 ```

@@ -57,6 +57,7 @@ Available references:
    - Existing descriptor protocol (e.g., `APIDescriptor`)
    - Folder structure conventions in the package
    - Any existing services or repositories to understand naming patterns
+   - Whether `swift-async-algorithms` is already a dependency in `Package.swift` (needed for `combineLatest`/`chain` in ViewModels that observe multiple stores)
 
 Present what you found and confirm the domain name and package location with the user.
 
