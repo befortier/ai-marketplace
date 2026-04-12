@@ -1,0 +1,24 @@
+{
+  "name": "ios-data-layer",
+  "description": "iOS data layer patterns — DTO, domain model, mapper, repository, network service, and AsyncStream store. Use when building or scaffolding a data layer for an iOS feature.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "data-layer",
+    "repository",
+    "networking",
+    "dto",
+    "mapper",
+    "async-stream",
+    "store"
+  ],
+  "agents": [
+    {
+      "path": "agents/make-data-layer.md"
+    }
+  ]
+}

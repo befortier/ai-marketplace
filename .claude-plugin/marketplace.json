@@ -81,6 +81,46 @@
         "api",
         "routes"
       ]
+    },
+    {
+      "name": "ios-data-layer",
+      "description": "iOS data layer patterns — DTO, domain model, mapper, repository, network service, and AsyncStream store. Use when building or scaffolding a data layer for an iOS feature.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-data-layer",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "data-layer",
+        "repository",
+        "networking",
+        "dto",
+        "mapper",
+        "async-stream",
+        "store"
+      ]
+    },
+    {
+      "name": "ios-network-layer",
+      "description": "Generic iOS NetworkKit package — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Scaffold script + interactive agent to stamp out and customize the stack.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-network-layer",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "networking",
+        "http",
+        "endpoint",
+        "retry",
+        "bearer",
+        "network-service",
+        "async-await"
+      ]
     }
   ]
 }

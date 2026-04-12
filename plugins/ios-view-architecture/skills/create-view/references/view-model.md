@@ -84,6 +84,66 @@ viewState = updated
 viewState.header.isVisible = true
 ```
 
+## Observing Stores via AsyncStream
+
+When the ViewModel receives live data from a repository or store, **prefer AsyncStream observation over Combine**. Start a `Task` in `init` (or a `load()` method) that loops over the stream and updates `viewState`.
+
+```swift
+private var observationTask: Task<Void, Never>?
+
+public init(
+    repository: any MyRepository,
+    mapper: any MyViewStateMapper,
+    onFinished: @MainActor @escaping (NavigationRequest) -> Void
+) {
+    self.repository = repository
+    self.mapper = mapper
+    self.onFinished = onFinished
+    self.viewState = .loading
+    observationTask = Task { await observe() }
+}
+
+deinit {
+    observationTask?.cancel()
+}
+
+private func observe() async {
+    let stream = await repository.stream(replayCurrentValue: true)
+    for await model in stream {
+        guard let model else { continue }
+        viewState = mapper.map(model)
+    }
+}
+```
+
+### Combining Multiple Streams
+
+When a view depends on more than one store, use `combineLatest` from `swift-async-algorithms` to merge them. Use `chain` to prepend an initial value to a stream that may not have emitted yet — this ensures `combineLatest` receives a value from both sides immediately rather than waiting.
+
+```swift
+import AsyncAlgorithms
+
+private func observe() async {
+    let itemStream = await itemRepository.stream(replayCurrentValue: true)
+    let likedStream = await likedRepository.stream(replayCurrentValue: false)
+
+    for await (item, liked) in combineLatest(
+        itemStream,
+        chain(
+            AsyncStream { $0.yield(LikedState(isLiked: false)); $0.finish() },
+            likedStream
+        )
+    ) {
+        guard let item else { continue }
+        viewState = mapper.map(item, liked)
+    }
+}
+```
+
+`chain` here provides `LikedState(isLiked: false)` as an initial value so `combineLatest` can start emitting even before the liked store has data. The mapper receives both values and produces the view state.
+
+> `swift-async-algorithms` is required for `combineLatest` and `chain`. Add it to `Package.swift` if not already present.
+
 ## Exit Pattern
 
 See [navigation-exit.md](navigation-exit.md) for the full navigation pattern.
@@ -94,5 +154,8 @@ See [navigation-exit.md](navigation-exit.md) for the full navigation pattern.
 |------|-----|
 | `@MainActor` | All UI state mutations on main thread |
 | `@Published private(set)` | Views read state; only ViewModel writes it |
+| AsyncStream for store observation | Preferred over Combine — composable, cancellable, no `AnyCancellable` storage |
+| `chain` for initial values | Ensures `combineLatest` emits immediately without waiting for all streams |
+| Cancel task in `deinit` | Stops observation when ViewModel is deallocated |
 | Dependencies are `let` | Immutable after init |
 | `final class` | Not designed for subclassing |

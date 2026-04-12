@@ -1,0 +1,17 @@
+{
+  "name": "ios-network-layer",
+  "description": "Generic iOS NetworkKit package — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Includes a scaffold script and an interactive agent to stamp out the stack and customize it to your app.",
+  "version": "1.0.0",
+  "author": { "name": "befortier" },
+  "keywords": [
+    "ios",
+    "swift",
+    "networking",
+    "http",
+    "endpoint",
+    "retry",
+    "bearer",
+    "network-service",
+    "async-await"
+  ]
+}
