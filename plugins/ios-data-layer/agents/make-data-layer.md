@@ -53,8 +53,9 @@ Available references:
 1. Understand what the user wants: domain name, API endpoint(s), response shape
 2. Ask clarifying questions if the response structure is unclear
 3. Scan the target Swift package with Glob and Grep to find:
-   - Existing HTTP client protocol name (e.g., `GatewayHTTPClient`)
-   - Existing descriptor protocol (e.g., `APIDescriptor`)
+   - Whether `NetworkKit` is available: search for `NetworkService`, `GetEndpoint`, or `HTTPClient` in nearby `Package.swift` files
+     - If **not found**: ask the user if they want to scaffold it first using the `create-network-layer` agent — this is a prerequisite for the Network Service phase
+   - Existing `NetworkService` usage or conformances to understand naming patterns
    - Folder structure conventions in the package
    - Any existing services or repositories to understand naming patterns
    - Whether `swift-async-algorithms` is already a dependency in `Package.swift` (needed for `combineLatest`/`chain` in ViewModels that observe multiple stores)
@@ -98,10 +99,10 @@ Present what you found and confirm the domain name and package location with the
 
 1. Read the `network-service.md` reference
 2. Propose the service protocol and implementation
-   - Use the HTTP client type found in Phase 0
-   - Use the descriptor protocol found in Phase 0
+   - Inject `any NetworkService` from NetworkKit (found in Phase 0)
+   - Define a `Get<Domain>Endpoint` (or Post/Delete) conforming to the appropriate marker protocol
 3. Present to the user for approval
-4. On approval, generate the service files + descriptor(s) + tests
+4. On approval, generate the service files + endpoint type(s) + tests
 5. Wait for user confirmation before moving on
 
 ### Phase 5: Store

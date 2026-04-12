@@ -4,6 +4,8 @@ Each domain gets its own service — a stateless struct that hits the API and re
 
 ## Core Shape
 
+Feature services inject `NetworkService` from NetworkKit and define their own endpoint types:
+
 ```swift
 @Mocked
 public protocol PointPassService: Sendable {
@@ -12,42 +14,44 @@ public protocol PointPassService: Sendable {
 }
 
 public struct RemotePointPassService: PointPassService {
-    private let httpClient: any GatewayHTTPClient
+    private let networkService: any NetworkService
 
-    public init(httpClient: any GatewayHTTPClient) {
-        self.httpClient = httpClient
+    public init(networkService: any NetworkService) {
+        self.networkService = networkService
     }
 
     public func getLanding() async throws -> PointPassLandingDTO {
-        let descriptor = GetPointPassLandingDescriptor()
-        return try await httpClient.request(descriptor: descriptor)
+        try await networkService.fetch(from: GetPointPassLandingEndpoint())
     }
 
     public func getDetails(for id: String) async throws -> PointPassDetailsDTO {
-        let descriptor = GetPointPassDetailsDescriptor(id: id)
-        return try await httpClient.request(descriptor: descriptor)
+        try await networkService.fetch(from: GetPointPassDetailsEndpoint(id: id))
     }
 }
 ```
 
-## Descriptors
+## Endpoints
 
-Descriptors encapsulate request configuration:
+Each service method gets its own endpoint type conforming to `GetEndpoint`, `PostEndpoint`, or `DeleteEndpoint`:
 
 ```swift
-struct GetPointPassLandingDescriptor: APIDescriptor {
-    let path = "/api/v1/pointpass/landing"
-    let method: HTTPMethod = .get
+struct GetPointPassLandingEndpoint: GetEndpoint {
+    var baseURL: BaseURL { .api }
+    var path: String { "/api/v1/pointpass/landing" }
+    var queryParameters: [String: String]? { nil }
+    var headers: [String: String]? { nil }
 }
 
-struct GetPointPassDetailsDescriptor: APIDescriptor {
+struct GetPointPassDetailsEndpoint: GetEndpoint {
     let id: String
+    var baseURL: BaseURL { .api }
     var path: String { "/api/v1/pointpass/\(id)/details" }
-    let method: HTTPMethod = .get
+    var queryParameters: [String: String]? { nil }
+    var headers: [String: String]? { nil }
 }
 ```
 
-**Scan the target package** for the existing descriptor protocol (`APIDescriptor`, `GatewayDescriptor`, etc.) and HTTP client type before generating.
+**Scan the target package** for `NetworkService` usage and the project's `BaseURL` cases before generating. If NetworkKit is not present, use the `create-network-layer` agent to scaffold it first.
 
 ## Where It Lives
 
@@ -55,7 +59,7 @@ struct GetPointPassDetailsDescriptor: APIDescriptor {
 Network/
 ├── <Domain>Service.swift              (protocol)
 ├── Remote<Domain>Service.swift        (implementation)
-└── Get<Resource>Descriptor.swift
+└── Get<Resource>Endpoint.swift
 ```
 
 ## Naming
@@ -64,7 +68,7 @@ Network/
 |----------|---------------|
 | `<Domain>Service` | `Remote<Domain>Service` |
 
-Descriptor naming: `Get<Resource>Descriptor`, `Post<Resource>Descriptor`
+Endpoint naming: `Get<Resource>Endpoint`, `Post<Resource>Endpoint`, `Delete<Resource>Endpoint`
 
 ## Rules
 
@@ -75,38 +79,41 @@ Descriptor naming: `Get<Resource>Descriptor`, `Post<Resource>Descriptor`
 | `async throws` | Propagates network errors to caller |
 | `@Mocked` protocol | Auto-generates test mocks |
 | One service per domain | Prevents god-service bloat |
-| No stored mutable state | Struct with only `let` dependencies |
+| Inject `any NetworkService` | Mockable in tests without touching HTTP |
+| One endpoint type per call | Keeps request configs explicit and testable |
 
 ## Testing
 
-Verify the correct descriptor is built and the HTTP client is called:
+Verify the correct endpoint is built and `NetworkService` is called:
 
 ```swift
 @Suite
 struct RemotePointPassServiceTests {
-    private let httpClientMock = GatewayHTTPClientMock()
+    private let networkServiceMock = NetworkServiceMock()
     private let sut: RemotePointPassService
 
     init() {
-        sut = RemotePointPassService(httpClient: httpClientMock)
+        sut = RemotePointPassService(networkService: networkServiceMock)
     }
 
-    @Test("getLanding calls httpClient and returns DTO")
+    @Test("getLanding fetches from correct endpoint and returns DTO")
     func getLanding() async throws {
         let expectedDTO = PointPassLandingDTO.stub()
-        httpClientMock._request.implementation = .returns(expectedDTO)
+        networkServiceMock._fetch.implementation = .returns(expectedDTO)
 
         let result = try await sut.getLanding()
 
-        #expect(httpClientMock._request.callCount == 1)
+        #expect(networkServiceMock._fetch.callCount == 1)
+        let endpoint = networkServiceMock._fetch.lastInvocation?.endpoint as? GetPointPassLandingEndpoint
+        #expect(endpoint != nil)
         #expect(result == expectedDTO)
     }
 
-    @Test("getLanding propagates client errors")
+    @Test("getLanding propagates network errors")
     func getLandingError() async {
-        httpClientMock._request.implementation = .throws(TestError.network)
+        networkServiceMock._fetch.implementation = .throws(NetworkError.serverError(500))
 
-        await #expect(throws: TestError.network) {
+        await #expect(throws: NetworkError.serverError(500)) {
             try await sut.getLanding()
         }
     }
