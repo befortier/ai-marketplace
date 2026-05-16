@@ -1,0 +1,20 @@
+{
+  "name": "split-pr",
+  "description": "Splits a large changeset or PR into smaller, focused PRs — analyzes symbol-level dependencies between changed files, then creates JIRA subtasks, branches, and parallel or chained PRs as appropriate. Works at any stage: unstaged, staged, committed-but-unpushed, or an existing PR.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "git",
+    "github",
+    "pull-request",
+    "pr",
+    "split",
+    "refactor",
+    "changeset",
+    "dependencies",
+    "jira",
+    "workflow"
+  ]
+}
