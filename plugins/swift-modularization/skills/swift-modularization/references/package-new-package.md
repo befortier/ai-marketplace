@@ -1,32 +1,58 @@
-# Authoring a new package's Package.swift
+# Authoring a package's Package.swift
 
-A feature or infrastructure package is a SwiftPM library: one `.library` product and a
-target, declaring only the dependencies it actually uses.
+A package covers one **area** (an infrastructure capability or a product domain) and
+exposes its modules as **multiple library products + targets**, declaring only the
+dependencies it actually uses. One product per public target; name each after its module.
+
+## Infrastructure area (abstraction + Live)
 
 ```swift
 // swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
-    name: "DesignSystem",
-    platforms: [.iOS(.v17)],
+    name: "Networking",
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "DesignSystem", targets: ["DesignSystem"])
-    ],
-    dependencies: [
-        .package(url: "https://github.com/kean/Nuke.git", from: "12.0.0")
+        .library(name: "Network", targets: ["Network"]),
+        .library(name: "NetworkLive", targets: ["NetworkLive"]),
     ],
     targets: [
-        .target(
-            name: "DesignSystem",
-            dependencies: [.product(name: "NukeUI", package: "Nuke")],
-            resources: [.process("Resources")]
-        )
+        .target(name: "Network"),
+        .target(name: "NetworkLive", dependencies: ["Network"]),
+        .testTarget(name: "NetworkLiveTests", dependencies: ["NetworkLive"]),
     ]
 )
 ```
 
-- One product per package; name the product and target after the package.
-- Declare only direct dependencies. For anything injected at the composition root,
-  depend on the **abstraction** package, never on `…Live`.
-- Add `resources:` only when the target ships assets.
+## Domain area (Data / UI / per-experience)
+
+```swift
+// swift-tools-version: 6.0
+import PackageDescription
+
+let package = Package(
+    name: "Chat",
+    platforms: [.iOS(.v17), .macOS(.v14)],
+    products: [
+        .library(name: "ChatData", targets: ["ChatData"]),
+        .library(name: "ChatUI",   targets: ["ChatUI"]),
+        .library(name: "ChatView", targets: ["ChatView"]),
+    ],
+    dependencies: [
+        .package(path: "../Networking"),
+    ],
+    targets: [
+        .target(name: "ChatData", dependencies: [.product(name: "Network", package: "Networking")]),
+        .target(name: "ChatUI",   dependencies: ["ChatData"]),
+        .target(name: "ChatView", dependencies: ["ChatUI", "ChatData"]),
+    ]
+)
+```
+
+- **One package per area**, named for the area; one `.library` product per public target.
+- Declare only direct dependencies. For anything injected at the composition root, depend
+  on the **abstraction** product (`Network`), never on `…Live`.
+- Cross-package deps reference the other area package by path and pull a specific product
+  via `.product(name:package:)`.
+- Add `resources:` only when a target ships assets.
