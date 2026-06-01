@@ -1,0 +1,18 @@
+{
+  "name": "swift-modularization",
+  "description": "Conventions for structuring a Swift app into SwiftPM packages: infrastructure vs domain clusters, protocol/Live splits, dependency direction, and a thin composition root. Use when organizing modules, adding a feature, or deciding where code lives.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "swift",
+    "swiftpm",
+    "modularization",
+    "architecture",
+    "packages",
+    "dependency-injection",
+    "composition-root",
+    "ios"
+  ]
+}

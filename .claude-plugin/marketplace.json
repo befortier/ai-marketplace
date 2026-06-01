@@ -142,6 +142,71 @@
         "jira",
         "workflow"
       ]
+    },
+    {
+      "name": "swift-modularization",
+      "description": "Conventions for structuring a Swift app into SwiftPM packages: infrastructure vs domain clusters, protocol/Live splits, dependency direction, and a thin composition root. Use when organizing modules, adding a feature, or deciding where code lives.",
+      "version": "1.0.0",
+      "source": "./plugins/swift-modularization",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "swift",
+        "swiftpm",
+        "modularization",
+        "architecture",
+        "packages",
+        "dependency-injection",
+        "composition-root",
+        "ios"
+      ]
+    },
+    {
+      "name": "swift-mocking",
+      "description": "Using the swift-mocking package (@Mocked macro) to generate protocol mocks for Swift unit tests. Use when mocking protocols, stubbing dependencies, or asserting on invocations in Swift tests.",
+      "version": "1.0.0",
+      "source": "./plugins/swift-mocking",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "swift",
+        "testing",
+        "mocking",
+        "mocks",
+        "protocols",
+        "macro",
+        "swift-testing",
+        "dependency-injection"
+      ]
+    },
+    {
+      "name": "swift-testing-expert",
+      "description": "Expert Swift Testing guidance for test structure, #expect/#require usage, traits and tags, parameterized tests, async waiting patterns, parallel execution, and XCTest migration. Vendored from AvdLee/Swift-Testing-Agent-Skill (MIT).",
+      "version": "1.2.0",
+      "source": "./plugins/swift-testing-expert",
+      "author": {
+        "name": "Antoine van der Lee"
+      },
+      "repository": "https://github.com/AvdLee/Swift-Testing-Agent-Skill",
+      "license": "MIT",
+      "keywords": [
+        "swift",
+        "swift-testing",
+        "testing",
+        "xctest",
+        "unit-testing",
+        "parameterized-tests",
+        "traits",
+        "tags",
+        "parallel-testing",
+        "async-await",
+        "xcode",
+        "ios",
+        "macos",
+        "apple"
+      ]
     }
   ]
 }
