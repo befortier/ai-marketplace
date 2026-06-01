@@ -2,44 +2,27 @@
 
 ## What counts as infrastructure
 
-A cross-cutting technical capability that is **provider- and domain-agnostic** —
-nothing about it is specific to a product feature. Examples: HTTP networking, web
-sockets, persistence/Keychain, generated wire models, the execution/bridge engine,
-shared `Sendable` utilities.
+A cross-cutting technical capability that is provider- and domain-agnostic — nothing
+about it is specific to a product feature. Examples: HTTP networking, web sockets,
+persistence/Keychain, shared `Sendable` utilities.
 
-If a type only makes sense in the context of one product domain, it is **not**
-infrastructure — it belongs in that domain's `…Data` package instead.
+If a type only makes sense within one product domain, it is not infrastructure — it
+belongs in that domain's `…Data` package.
 
-## The abstraction / `Live` split (optional)
+## The abstraction / `Live` split
 
-You may split a capability into two packages:
+Infrastructure that other packages must inject as a dependency is split into two
+packages: an **abstraction** package (the protocols plus plain request/response models)
+and a **`Live`** package (the concrete implementation). Consumers compile only against
+the abstraction; the `Live` implementation is injected at the composition root, so
+nothing else can depend on it and tests substitute a mock.
 
-- `Network` — the **protocols** plus pure request/response models. Consumers import
-  this and compile against the protocol surface only.
-- `NetworkLive` — the **concrete implementation** (e.g. URLSession). Imported only by
-  the composition root, which injects it.
+- `Network` (protocols + models) → `NetworkLive` (URLSession)
+- `Websockets` (protocols) → `WebsocketsLive`
 
-Why: domains and other packages never see the implementation, so they can't depend on
-it, and tests substitute a mock of the protocol.
+## When to split (and when not to)
 
-Examples in the target shape:
-
-- `Network` → `NetworkLive` (URLSession)
-- `Websockets` → `WebsocketsLive`
-- `AssistantProto` — generated SwiftProtobuf models (no split; pure data)
-- `ProjectFoundation` — Keychain / Core Data stores + `Sendable` utilities
-- `Bridge` / execution engine — infrastructure; abstract it so domains implement
-  against the abstraction. Whether it needs the protocol/`Live` split is **decided
-  when it is built**, not pre-emptively.
-
-## The rule: start combined, shard later
-
-Do **not** create `X` + `XLive` reflexively. Begin with a single package. Split out a
-`…Live` package only when a concrete need appears:
-
-- a test needs to substitute the implementation, or
-- the composition root needs to inject a different implementation per environment.
-
-Until then, the extra package is overhead. (Reference project: the `Network` package
-keeps its protocols and `URLSession`/Bearer composition together under a
-`Composition/` folder, splitting only where injection demanded it.)
+The split is driven by injection need. If other packages must inject this capability as
+a dependency, give it the abstraction + `Live` pair. If nothing needs to inject it, it
+doesn't need the split — and may not need to be its own package at all. Add the `Live`
+pair when a real consumer or test requires injection, not speculatively.

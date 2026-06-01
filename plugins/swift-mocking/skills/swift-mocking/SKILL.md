@@ -9,15 +9,13 @@ description: Guidance on the swift-mocking package (@Mocked macro) for generatin
 
 [swift-mocking](https://github.com/fetch-rewards/swift-mocking) is a macro that
 generates a mock class from a protocol. It is Swift 6 / concurrency-safe and the
-generated mocks are conditionally compiled (wrapped in `#if SWIFT_MOCKING_ENABLED`
-by default). Pairs with the `swift-testing` skill — this codebase uses Swift
-Testing (`#expect`/`#require`), not XCTest.
+generated mocks are conditionally compiled (wrapped in `#if SWIFT_MOCKING_ENABLED` by
+default). It is designed for the Swift Testing framework (`#expect`/`#require`).
 
 - **Import:** `import Mocking` (`public import Mocking` from a module that vends
   `public` mockable protocols)
-- **Why protocols:** a dependency must be a protocol to get an `@Mocked` mock —
-  this is *why* `swift-modularization` says "everything testable gets a protocol +
-  `@Mocked`", injecting the mock in tests and the `…Live`/`Default` impl in production.
+- **Why protocols:** a dependency must be a protocol to get an `@Mocked` mock — inject
+  the mock in tests and the real implementation in production.
 
 ## Quick Start
 
@@ -70,8 +68,8 @@ mock._method.invocations                        // [args] for all calls
 mock._method.returnedValues                     // values returned
 ```
 
-Asserting on `lastInvocation` / `invocations` (deep input verification) is the
-non-negotiable rule shared with `swift-testing`: never assert call count alone.
+Assert on `lastInvocation` / `invocations` (deep input verification) — never assert on
+call count alone.
 
 ## Beyond the basics → references
 
@@ -82,8 +80,8 @@ non-negotiable rule shared with `swift-testing`: never assert call count alone.
 
 ## Guidelines
 
-- **`@Mocked` by default.** Only hand-write a mock (`@MockedMembers`) when the
-  macro can't apply — e.g. protocol inheritance. See references/advanced-mocks.md.
+- **`@Mocked` by default.** Only hand-write a mock (`@MockedMembers`) when the macro
+  can't apply — e.g. protocol inheritance. See references/advanced-mocks.md.
 - **Prefer checked implementations** (`.returns`/`.invokes`). Use the `unchecked`
   variants only for genuinely non-`Sendable` types.
 - **Reset static mocks** between tests: `SomeMock.resetMockedStaticMembers()`.
