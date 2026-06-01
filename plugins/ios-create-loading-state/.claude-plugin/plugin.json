@@ -1,0 +1,17 @@
+{
+  "name": "ios-create-loading-state",
+  "description": "Adds FailableLoadingState and LoadingState async-state enums (plus the Nothing type) to a Swift project. Use when creating a loading state or adding async loading enums to an iOS module.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "loading-state",
+    "async",
+    "enum",
+    "failable",
+    "state-management"
+  ]
+}

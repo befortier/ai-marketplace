@@ -1,0 +1,17 @@
+{
+  "name": "ios-use-case",
+  "description": "Encapsulate business logic as a Sendable struct conforming to a protocol and invoked via callAsFunction(), with the DefaultXxxUseCase naming convention. Use when creating or injecting a use case in Swift.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "use-case",
+    "business-logic",
+    "callasfunction",
+    "sendable",
+    "dependency-injection"
+  ]
+}

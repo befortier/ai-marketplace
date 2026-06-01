@@ -1,0 +1,17 @@
+{
+  "name": "ios-join-async-stream",
+  "description": "Combine multiple AsyncStream sources into a single mapped output stream using the combineLatest pattern. Use when joining repository/store streams or merging async sources in Swift.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "async-stream",
+    "combine-latest",
+    "streams",
+    "concurrency",
+    "reactive"
+  ]
+}

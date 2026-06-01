@@ -207,6 +207,60 @@
         "macos",
         "apple"
       ]
+    },
+    {
+      "name": "ios-create-loading-state",
+      "description": "Adds FailableLoadingState and LoadingState async-state enums (plus the Nothing type) to a Swift project. Use when creating a loading state or adding async loading enums to an iOS module.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-create-loading-state",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "loading-state",
+        "async",
+        "enum",
+        "failable",
+        "state-management"
+      ]
+    },
+    {
+      "name": "ios-join-async-stream",
+      "description": "Combine multiple AsyncStream sources into a single mapped output stream using the combineLatest pattern. Use when joining repository/store streams or merging async sources in Swift.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-join-async-stream",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "async-stream",
+        "combine-latest",
+        "streams",
+        "concurrency",
+        "reactive"
+      ]
+    },
+    {
+      "name": "ios-use-case",
+      "description": "Encapsulate business logic as a Sendable struct conforming to a protocol and invoked via callAsFunction(), with the DefaultXxxUseCase naming convention. Use when creating or injecting a use case in Swift.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-use-case",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "use-case",
+        "business-logic",
+        "callasfunction",
+        "sendable",
+        "dependency-injection"
+      ]
     }
   ]
 }
