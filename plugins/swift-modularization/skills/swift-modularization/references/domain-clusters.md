@@ -7,7 +7,7 @@ target and never a package per module. Slice it by concern; each slice is a targ
 ## The three slices
 
 ### `<Domain>Data`
-The domain's shared core: domain models, network services (built on the `Network`
+The domain's shared core: domain models, network services (built on the `Networking`
 abstraction), and data stores.
 
 ### `<Domain>UI`
@@ -26,7 +26,7 @@ products: [
     .library(name: "ChatView", targets: ["ChatView"]),
 ],
 targets: [
-    .target(name: "ChatData", dependencies: [.product(name: "Network", package: "Networking")]),
+    .target(name: "ChatData", dependencies: [.product(name: "Networking", package: "Networking")]),
     .target(name: "ChatUI",   dependencies: ["ChatData"]),
     .target(name: "ChatView", dependencies: ["ChatUI", "ChatData"]),
 ]

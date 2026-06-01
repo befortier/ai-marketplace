@@ -2,7 +2,7 @@
 
 `HTTPClient` is the retry/adapter loop that sits between `NetworkService` and `URLSession`. Feature code never depends on it directly — feature services depend on `NetworkService`.
 
-> **Module:** everything here lives in **`NetworkLive`** (`import Network`), except the `NetworkClient` protocol and `NetworkError`, which live in **`Network`** so consumers can reference them without pulling the implementation.
+> **Module:** everything here lives in **`NetworkingLive`** (`import Networking`), except the `NetworkClient` protocol and `NetworkError`, which live in **`Networking`** so consumers can reference them without pulling the implementation.
 
 ## Layers
 

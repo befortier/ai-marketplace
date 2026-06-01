@@ -14,8 +14,8 @@ things together. There are two package kinds — infrastructure and domain — a
 everything testable is a protocol.
 
 **Group by area, not by module.** The package is the unit for a capability or domain;
-the modules inside it are targets + products. A `Networking` package exposes `Network`
-+ `NetworkLive`; a `Chat` package exposes `ChatData` + `ChatUI` + `ChatView`. Prefer one
+the modules inside it are targets + products. A `Networking` package exposes `Networking`
++ `NetworkingLive`; a `Chat` package exposes `ChatData` + `ChatUI` + `ChatView`. Prefer one
 package with several targets over a package per module — far fewer manifests, cleaner
 area boundaries, same enforced dependency direction.
 

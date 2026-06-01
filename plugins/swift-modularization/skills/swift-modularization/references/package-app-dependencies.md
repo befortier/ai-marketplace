@@ -22,7 +22,7 @@ let package = Package(
         .executableTarget(
             name: "MyApp",
             dependencies: [
-                .product(name: "NetworkLive", package: "Networking"),
+                .product(name: "NetworkingLive", package: "Networking"),
                 .product(name: "WebsocketsLive", package: "Websockets"),
                 .product(name: "ConnectionsView", package: "Connections"),
                 .product(name: "ChatView", package: "Chat"),

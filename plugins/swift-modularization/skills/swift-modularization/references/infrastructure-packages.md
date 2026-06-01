@@ -13,7 +13,7 @@ belongs in that domain's `…Data` target.
 
 An infrastructure capability is **one package, named for the area**, exposing one or
 more library targets — not a separate package per module. The `Networking` package
-exposes the `Network` and `NetworkLive` products; the `Persistence` package exposes
+exposes the `Networking` and `NetworkingLive` products; the `Persistence` package exposes
 `CoreDataStore` and `CoreDataStoreLive`.
 
 ## The abstraction / `Live` split
@@ -25,17 +25,22 @@ abstraction). Each is its own `.library` product. Consumers compile only against
 abstraction product; the `Live` product is added only at the composition root, so
 nothing else can depend on it and tests substitute a mock.
 
-- `Networking` package → `Network` (protocols + models) + `NetworkLive` (URLSession)
+- `Networking` package → `Networking` (protocols + models) + `NetworkingLive` (URLSession)
 - `Websockets` package → `Websockets` + `WebsocketsLive`
+
+> **Avoid system-framework name collisions.** Don't name a module `Network` — it
+> shadows Apple's system `Network.framework` (e.g. WebKit pulls
+> `Network.ProxyConfiguration`), breaking any target that imports both. Use
+> `Networking`/`NetworkingLive`. Same caution for other Apple framework names.
 
 ```swift
 products: [
-    .library(name: "Network", targets: ["Network"]),
-    .library(name: "NetworkLive", targets: ["NetworkLive"]),
+    .library(name: "Networking", targets: ["Networking"]),
+    .library(name: "NetworkingLive", targets: ["NetworkingLive"]),
 ],
 targets: [
-    .target(name: "Network"),
-    .target(name: "NetworkLive", dependencies: ["Network"]),
+    .target(name: "Networking"),
+    .target(name: "NetworkingLive", dependencies: ["Networking"]),
 ]
 ```
 

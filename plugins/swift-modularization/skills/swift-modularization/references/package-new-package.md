@@ -14,13 +14,13 @@ let package = Package(
     name: "Networking",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "Network", targets: ["Network"]),
-        .library(name: "NetworkLive", targets: ["NetworkLive"]),
+        .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "NetworkingLive", targets: ["NetworkingLive"]),
     ],
     targets: [
-        .target(name: "Network"),
-        .target(name: "NetworkLive", dependencies: ["Network"]),
-        .testTarget(name: "NetworkLiveTests", dependencies: ["NetworkLive"]),
+        .target(name: "Networking"),
+        .target(name: "NetworkingLive", dependencies: ["Networking"]),
+        .testTarget(name: "NetworkingLiveTests", dependencies: ["NetworkingLive"]),
     ]
 )
 ```
@@ -43,7 +43,7 @@ let package = Package(
         .package(path: "../Networking"),
     ],
     targets: [
-        .target(name: "ChatData", dependencies: [.product(name: "Network", package: "Networking")]),
+        .target(name: "ChatData", dependencies: [.product(name: "Networking", package: "Networking")]),
         .target(name: "ChatUI",   dependencies: ["ChatData"]),
         .target(name: "ChatView", dependencies: ["ChatUI", "ChatData"]),
     ]
@@ -52,7 +52,7 @@ let package = Package(
 
 - **One package per area**, named for the area; one `.library` product per public target.
 - Declare only direct dependencies. For anything injected at the composition root, depend
-  on the **abstraction** product (`Network`), never on `…Live`.
+  on the **abstraction** product (`Networking`), never on `…Live`.
 - Cross-package deps reference the other area package by path and pull a specific product
   via `.product(name:package:)`.
 - Add `resources:` only when a target ships assets.

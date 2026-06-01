@@ -1,15 +1,15 @@
 ---
 name: network-layer
-description: iOS Network/NetworkLive architecture reference — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Loaded by the create-network-layer agent as its knowledge base.
+description: iOS Networking/NetworkingLive architecture reference — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Loaded by the create-network-layer agent as its knowledge base.
 ---
 
 # iOS Network Layer Reference
 
 Architecture conventions for the generic `Networking` Swift package, split into two
-library products: **`Network`** (the abstraction — endpoints, protocols, models, decoding)
-and **`NetworkLive`** (the URLSession `HTTPClient` + `NetworkServiceLive`, depending on
-`Network`). Feature code depends on `Network`; only the composition root pulls
-`NetworkLive`. The `create-network-layer` agent uses these references to scaffold and
+library products: **`Networking`** (the abstraction — endpoints, protocols, models, decoding)
+and **`NetworkingLive`** (the URLSession `HTTPClient` + `NetworkServiceLive`, depending on
+`Networking`). Feature code depends on `Networking`; only the composition root pulls
+`NetworkingLive`. The `create-network-layer` agent uses these references to scaffold and
 customize the stack.
 
 ## Architecture
@@ -61,11 +61,11 @@ Key rules:
 
 ## File Organization
 
-Two targets in one package. `Network` (abstraction) has no dependency on `NetworkLive`;
-`NetworkLive` does `import Network`.
+Two targets in one package. `Networking` (abstraction) has no dependency on `NetworkingLive`;
+`NetworkingLive` does `import Networking`.
 
 ```
-Sources/Network/                            ← abstraction product
+Sources/Networking/                            ← abstraction product
 ├── Client/
 │   ├── NetworkClient.swift                 ← protocol + URLSession conformance
 │   └── NetworkError.swift
@@ -87,7 +87,7 @@ Sources/Network/                            ← abstraction product
 └── Utility/
     └── URLResponse+Success.swift
 
-Sources/NetworkLive/                        ← concrete product (import Network)
+Sources/NetworkingLive/                        ← concrete product (import Networking)
 ├── Client/
 │   ├── HTTPClient.swift
 │   └── HTTP/

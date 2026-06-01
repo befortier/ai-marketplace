@@ -2,9 +2,13 @@
 # create-network-layer.sh
 # Stamps out a complete Networking Swift package at the target directory, split
 # into two library products:
-#   • Network      — the abstraction: protocols, endpoints, models, decoding.
-#   • NetworkLive  — the concrete URLSession implementation (depends on Network).
-# Feature code depends on `Network`; only the composition root pulls `NetworkLive`.
+#   • Networking      — the abstraction: protocols, endpoints, models, decoding.
+#   • NetworkingLive  — the concrete URLSession implementation (depends on Networking).
+# Feature code depends on `Networking`; only the composition root pulls `NetworkingLive`.
+#
+# NOTE: the abstraction module is `Networking`, NOT `Network` — a module named
+# `Network` collides with Apple's system `Network.framework` (e.g. WebKit pulls
+# `Network.ProxyConfiguration`), which breaks any target that imports both.
 #
 # Usage:
 #   ./create-network-layer.sh [target-directory]
@@ -16,27 +20,27 @@ set -euo pipefail
 
 TARGET="${1:-.}"
 
-echo "→ Scaffolding Networking (Network + NetworkLive) at: $TARGET"
+echo "→ Scaffolding Networking (Networking + NetworkingLive) at: $TARGET"
 
 # ---------------------------------------------------------------------------
 # Directory structure
 # ---------------------------------------------------------------------------
-mkdir -p "$TARGET/Sources/Network/Client"
-mkdir -p "$TARGET/Sources/Network/Endpoint"
-mkdir -p "$TARGET/Sources/Network/Service"
-mkdir -p "$TARGET/Sources/Network/Decoding"
-mkdir -p "$TARGET/Sources/Network/Utility"
-mkdir -p "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient"
-mkdir -p "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy"
-mkdir -p "$TARGET/Sources/NetworkLive/Service"
-mkdir -p "$TARGET/Tests/NetworkLiveTests"
+mkdir -p "$TARGET/Sources/Networking/Client"
+mkdir -p "$TARGET/Sources/Networking/Endpoint"
+mkdir -p "$TARGET/Sources/Networking/Service"
+mkdir -p "$TARGET/Sources/Networking/Decoding"
+mkdir -p "$TARGET/Sources/Networking/Utility"
+mkdir -p "$TARGET/Sources/NetworkingLive/Client/HTTP/BearerHTTPClient"
+mkdir -p "$TARGET/Sources/NetworkingLive/Client/HTTP/RetryPolicy"
+mkdir -p "$TARGET/Sources/NetworkingLive/Service"
+mkdir -p "$TARGET/Tests/NetworkingLiveTests"
 
 # ===========================================================================
-# Network — abstraction target
+# Networking — abstraction target
 # ===========================================================================
 
 # --- Client -----------------------------------------------------------------
-cat > "$TARGET/Sources/Network/Client/NetworkClient.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Client/NetworkClient.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -54,7 +58,7 @@ public protocol NetworkClient: Sendable {
 extension URLSession: NetworkClient {}
 EOF
 
-cat > "$TARGET/Sources/Network/Client/NetworkError.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Client/NetworkError.swift" << 'EOF'
 import Foundation
 
 /// Errors thrown by NetworkService.
@@ -70,7 +74,7 @@ public enum NetworkError: Error, Equatable {
 EOF
 
 # --- Endpoint ---------------------------------------------------------------
-cat > "$TARGET/Sources/Network/Endpoint/BaseURL.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/BaseURL.swift" << 'EOF'
 // TODO: Replace with your app's actual base URLs.
 // Add a case for each host your app communicates with.
 //
@@ -83,7 +87,7 @@ public enum BaseURL: String, Sendable {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/Endpoint.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/Endpoint.swift" << 'EOF'
 import Foundation
 
 /// Defines the information needed to build a network request.
@@ -100,14 +104,14 @@ extension Endpoint {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/GetEndpoint.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/GetEndpoint.swift" << 'EOF'
 import Foundation
 
 /// Marker protocol for read-only GET requests.
 public protocol GetEndpoint: Endpoint {}
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/PostEndpoint.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/PostEndpoint.swift" << 'EOF'
 import Foundation
 
 /// Endpoint for requests that send an encodable body.
@@ -119,14 +123,14 @@ public protocol PostEndpoint<Body>: Endpoint {
 public typealias NetworkRequestBody = Sendable & Encodable
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/DeleteEndpoint.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/DeleteEndpoint.swift" << 'EOF'
 import Foundation
 
 /// Marker protocol for DELETE requests.
 public protocol DeleteEndpoint: Endpoint {}
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/InterpretedHTTPMethod.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/InterpretedHTTPMethod.swift" << 'EOF'
 import Foundation
 
 /// String-based representation of HTTP methods.
@@ -138,7 +142,7 @@ public enum InterpretedHTTPMethod: String {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/InterpretedEndpoint.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/InterpretedEndpoint.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -152,7 +156,7 @@ public struct InterpretedEndpoint {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Endpoint/EndpointInterpreter.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Endpoint/EndpointInterpreter.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -160,7 +164,7 @@ import Foundation
 #endif
 
 /// Converts Endpoint values into URLRequest objects. Public so the live
-/// service (in NetworkLive) can build requests from the abstraction.
+/// service (in NetworkingLive) can build requests from the abstraction.
 public struct EndpointInterpreter {
   public static func interpret(endpoint: Endpoint) -> URLRequest? {
     guard let url = URL(string: endpoint.baseURL.rawValue + endpoint.path) else { return nil }
@@ -190,7 +194,7 @@ public struct EndpointInterpreter {
 EOF
 
 # --- Service (protocol) -----------------------------------------------------
-cat > "$TARGET/Sources/Network/Service/NetworkService.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Service/NetworkService.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -222,7 +226,7 @@ extension NetworkService {
 EOF
 
 # --- Decoding ---------------------------------------------------------------
-cat > "$TARGET/Sources/Network/Decoding/DateFormat.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Decoding/DateFormat.swift" << 'EOF'
 public import Foundation
 
 /// Convenience enum so call-sites can pass either a built-in
@@ -242,7 +246,7 @@ public enum DateFormat {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Decoding/EmptyDecodable.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Decoding/EmptyDecodable.swift" << 'EOF'
 /// A placeholder type used to decode empty responses.
 public struct EmptyDecodable: Decodable, ExpressibleByNilLiteral {
   public init(nilLiteral: ()) {}
@@ -250,7 +254,7 @@ public struct EmptyDecodable: Decodable, ExpressibleByNilLiteral {
 }
 EOF
 
-cat > "$TARGET/Sources/Network/Decoding/JSONDecoder+MixedDate.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Decoding/JSONDecoder+MixedDate.swift" << 'EOF'
 public import Foundation
 
 extension JSONDecoder {
@@ -283,7 +287,7 @@ extension JSONDecoder {
 EOF
 
 # --- Utility ----------------------------------------------------------------
-cat > "$TARGET/Sources/Network/Utility/URLResponse+Success.swift" << 'EOF'
+cat > "$TARGET/Sources/Networking/Utility/URLResponse+Success.swift" << 'EOF'
 import Foundation
 
 extension URLResponse {
@@ -296,13 +300,13 @@ extension URLResponse {
 EOF
 
 # ===========================================================================
-# NetworkLive — concrete implementation target (depends on Network)
+# NetworkingLive — concrete implementation target (depends on Networking)
 # ===========================================================================
 
 # --- Client -----------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkLive/Client/HTTPClient.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTPClient.swift" << 'EOF'
 import Foundation
-import Network
+import Networking
 
 public struct HTTPClient: NetworkClient {
     private let session: any NetworkClient
@@ -384,9 +388,9 @@ public struct HTTPClient: NetworkClient {
 EOF
 
 # --- Adapters ---------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient/BearerRequestAdapter.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/BearerHTTPClient/BearerRequestAdapter.swift" << 'EOF'
 public import Foundation
-import Network
+import Networking
 
 public protocol NetworkAdapter: Sendable {
     func adapt(_ request: URLRequest) async throws -> URLRequest
@@ -418,7 +422,7 @@ public struct BearerRequestAdapter: NetworkAdapter {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/HeaderConfiguration.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/HeaderConfiguration.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -438,7 +442,7 @@ public struct HeaderConfiguration: Sendable {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient/TokenRefreshing.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/BearerHTTPClient/TokenRefreshing.swift" << 'EOF'
 import Foundation
 
 /// Abstraction for objects capable of refreshing bearer tokens.
@@ -448,9 +452,9 @@ public protocol TokenRefreshing: Sendable {
 EOF
 
 # --- Retry policies ---------------------------------------------------------
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/RetryDirective.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/RetryPolicy/RetryDirective.swift" << 'EOF'
 import Foundation
-import Network
+import Networking
 
 /// Possible actions after inspecting an HTTP error.
 public enum RetryDecision {
@@ -470,8 +474,8 @@ public protocol RetryPolicy: Sendable {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/BasicRetryPolicy.swift" << 'EOF'
-import Network
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/RetryPolicy/BasicRetryPolicy.swift" << 'EOF'
+import Networking
 
 /// Retries once on 5xx with a short backoff. Never refreshes tokens.
 public struct BasicRetryPolicy: RetryPolicy {
@@ -493,8 +497,8 @@ public struct BasicRetryPolicy: RetryPolicy {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/BearerRetryPolicy.swift" << 'EOF'
-import Network
+cat > "$TARGET/Sources/NetworkingLive/Client/HTTP/RetryPolicy/BearerRetryPolicy.swift" << 'EOF'
+import Networking
 
 /// Refreshes the bearer token on the first 401/403, then retries once.
 /// Falls back to basic 5xx retry for server errors.
@@ -524,9 +528,9 @@ public struct BearerRetryPolicy: RetryPolicy {
 EOF
 
 # --- Service (live) ---------------------------------------------------------
-cat > "$TARGET/Sources/NetworkLive/Service/NetworkServiceLive.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkingLive/Service/NetworkServiceLive.swift" << 'EOF'
 public import Foundation
-import Network
+import Networking
 
 /// Production implementation of NetworkService.
 public struct NetworkServiceLive: NetworkService {
@@ -563,13 +567,13 @@ public struct NetworkServiceLive: NetworkService {
 EOF
 
 # ===========================================================================
-# Tests (NetworkLive) — placeholder so the test target isn't empty
+# Tests (NetworkingLive) — placeholder so the test target isn't empty
 # ===========================================================================
-cat > "$TARGET/Tests/NetworkLiveTests/NetworkLiveTests.swift" << 'EOF'
+cat > "$TARGET/Tests/NetworkingLiveTests/NetworkingLiveTests.swift" << 'EOF'
 import XCTest
-@testable import NetworkLive
+@testable import NetworkingLive
 
-final class NetworkLiveTests: XCTestCase {
+final class NetworkingLiveTests: XCTestCase {
     func testScaffoldCompiles() {
         XCTAssertTrue(true)
     }
@@ -588,39 +592,39 @@ let package = Package(
     name: "Networking",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "Network", targets: ["Network"]),
-        .library(name: "NetworkLive", targets: ["NetworkLive"]),
+        .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "NetworkingLive", targets: ["NetworkingLive"]),
     ],
     targets: [
         .target(
-            name: "Network",
-            path: "Sources/Network"
+            name: "Networking",
+            path: "Sources/Networking"
         ),
         .target(
-            name: "NetworkLive",
-            dependencies: ["Network"],
-            path: "Sources/NetworkLive"
+            name: "NetworkingLive",
+            dependencies: ["Networking"],
+            path: "Sources/NetworkingLive"
         ),
         .testTarget(
-            name: "NetworkLiveTests",
-            dependencies: ["NetworkLive"],
-            path: "Tests/NetworkLiveTests"
+            name: "NetworkingLiveTests",
+            dependencies: ["NetworkingLive"],
+            path: "Tests/NetworkingLiveTests"
         ),
     ]
 )
 EOF
     echo "  ✓ Package.swift created"
 else
-    echo "  ↷ Package.swift already exists — skipping (add Network + NetworkLive targets manually)"
+    echo "  ↷ Package.swift already exists — skipping (add Networking + NetworkingLive targets manually)"
 fi
 
 echo ""
-echo "✅ Networking scaffolded at $TARGET (products: Network, NetworkLive)"
+echo "✅ Networking scaffolded at $TARGET (products: Networking, NetworkingLive)"
 echo ""
 echo "Next steps:"
-echo "  1. Open $TARGET/Sources/Network/Endpoint/BaseURL.swift"
+echo "  1. Open $TARGET/Sources/Networking/Endpoint/BaseURL.swift"
 echo "     and replace the placeholder with your app's actual base URLs."
 echo "  2. If your app uses auth headers beyond Authorization: Bearer,"
-echo "     customize NetworkLive's BearerRequestAdapter.swift."
-echo "  3. Feature code depends on the 'Network' product; wire 'NetworkLive'"
+echo "     customize NetworkingLive's BearerRequestAdapter.swift."
+echo "  3. Feature code depends on the 'Networking' product; wire 'NetworkingLive'"
 echo "     (HTTPClient + NetworkServiceLive) only at the composition root."
