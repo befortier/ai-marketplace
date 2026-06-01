@@ -17,8 +17,6 @@
     "store"
   ],
   "agents": [
-    {
-      "path": "agents/make-data-layer.md"
-    }
+    "./agents/make-data-layer.md"
   ]
 }
