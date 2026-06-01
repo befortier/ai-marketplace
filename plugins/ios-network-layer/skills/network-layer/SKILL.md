@@ -1,11 +1,16 @@
 ---
 name: network-layer
-description: iOS NetworkKit architecture reference — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Loaded by the create-network-layer agent as its knowledge base.
+description: iOS Network/NetworkLive architecture reference — HTTP client, endpoint protocol, retry policies, bearer auth, and NetworkService. Loaded by the create-network-layer agent as its knowledge base.
 ---
 
 # iOS Network Layer Reference
 
-Architecture conventions for the generic `NetworkKit` Swift package. The `create-network-layer` agent uses these references to scaffold and customize the stack.
+Architecture conventions for the generic `Networking` Swift package, split into two
+library products: **`Network`** (the abstraction — endpoints, protocols, models, decoding)
+and **`NetworkLive`** (the URLSession `HTTPClient` + `NetworkServiceLive`, depending on
+`Network`). Feature code depends on `Network`; only the composition root pulls
+`NetworkLive`. The `create-network-layer` agent uses these references to scaffold and
+customize the stack.
 
 ## Architecture
 
@@ -56,12 +61,35 @@ Key rules:
 
 ## File Organization
 
+Two targets in one package. `Network` (abstraction) has no dependency on `NetworkLive`;
+`NetworkLive` does `import Network`.
+
 ```
-Sources/NetworkKit/
+Sources/Network/                            ← abstraction product
 ├── Client/
-│   ├── NetworkClient.swift
+│   ├── NetworkClient.swift                 ← protocol + URLSession conformance
+│   └── NetworkError.swift
+├── Endpoint/
+│   ├── BaseURL.swift                        ← TODO: customize per app
+│   ├── Endpoint.swift
+│   ├── GetEndpoint.swift
+│   ├── PostEndpoint.swift
+│   ├── DeleteEndpoint.swift
+│   ├── EndpointInterpreter.swift            ← public; builds URLRequest
+│   ├── InterpretedHTTPMethod.swift
+│   └── InterpretedEndpoint.swift
+├── Service/
+│   └── NetworkService.swift                 ← protocol only
+├── Decoding/
+│   ├── DateFormat.swift
+│   ├── EmptyDecodable.swift
+│   └── JSONDecoder+MixedDate.swift
+└── Utility/
+    └── URLResponse+Success.swift
+
+Sources/NetworkLive/                        ← concrete product (import Network)
+├── Client/
 │   ├── HTTPClient.swift
-│   ├── NetworkError.swift
 │   └── HTTP/
 │       ├── HeaderConfiguration.swift
 │       ├── BearerHTTPClient/
@@ -71,24 +99,8 @@ Sources/NetworkKit/
 │           ├── RetryDirective.swift         ← RetryPolicy protocol + RetryDecision
 │           ├── BasicRetryPolicy.swift
 │           └── BearerRetryPolicy.swift
-├── Endpoint/
-│   ├── BaseURL.swift                        ← TODO: customize per app
-│   ├── Endpoint.swift
-│   ├── GetEndpoint.swift
-│   ├── PostEndpoint.swift
-│   ├── DeleteEndpoint.swift
-│   ├── EndpointInterpreter.swift
-│   ├── InterpretedHTTPMethod.swift
-│   └── InterpretedEndpoint.swift
-├── Service/
-│   ├── NetworkService.swift
-│   └── NetworkServiceLive.swift
-├── Decoding/
-│   ├── DateFormat.swift
-│   ├── EmptyDecodable.swift
-│   └── JSONDecoder+MixedDate.swift
-└── Utility/
-    └── URLResponse+Success.swift
+└── Service/
+    └── NetworkServiceLive.swift
 ```
 
 ## Scaffold Script
@@ -97,4 +109,5 @@ Sources/NetworkKit/
 plugins/ios-network-layer/scripts/create-network-layer.sh [target-dir]
 ```
 
-Stamps out all files above. `BaseURL.swift` is a TODO placeholder — the agent fills it in after running the script.
+Stamps out a `Networking` package with both products. `BaseURL.swift` is a TODO
+placeholder — the agent fills it in after running the script.

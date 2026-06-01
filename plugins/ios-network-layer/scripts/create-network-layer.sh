@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # create-network-layer.sh
-# Stamps out a complete NetworkKit Swift package at the target directory.
+# Stamps out a complete Networking Swift package at the target directory, split
+# into two library products:
+#   • Network      — the abstraction: protocols, endpoints, models, decoding.
+#   • NetworkLive  — the concrete URLSession implementation (depends on Network).
+# Feature code depends on `Network`; only the composition root pulls `NetworkLive`.
 #
 # Usage:
 #   ./create-network-layer.sh [target-directory]
@@ -12,30 +16,35 @@ set -euo pipefail
 
 TARGET="${1:-.}"
 
-echo "→ Scaffolding NetworkKit at: $TARGET"
+echo "→ Scaffolding Networking (Network + NetworkLive) at: $TARGET"
 
 # ---------------------------------------------------------------------------
 # Directory structure
 # ---------------------------------------------------------------------------
-mkdir -p "$TARGET/Sources/NetworkKit/Client/HTTP/BearerHTTPClient"
-mkdir -p "$TARGET/Sources/NetworkKit/Client/HTTP/RetryPolicy"
-mkdir -p "$TARGET/Sources/NetworkKit/Endpoint"
-mkdir -p "$TARGET/Sources/NetworkKit/Service"
-mkdir -p "$TARGET/Sources/NetworkKit/Decoding"
-mkdir -p "$TARGET/Sources/NetworkKit/Utility"
-mkdir -p "$TARGET/Tests/NetworkKitTests"
+mkdir -p "$TARGET/Sources/Network/Client"
+mkdir -p "$TARGET/Sources/Network/Endpoint"
+mkdir -p "$TARGET/Sources/Network/Service"
+mkdir -p "$TARGET/Sources/Network/Decoding"
+mkdir -p "$TARGET/Sources/Network/Utility"
+mkdir -p "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient"
+mkdir -p "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy"
+mkdir -p "$TARGET/Sources/NetworkLive/Service"
+mkdir -p "$TARGET/Tests/NetworkLiveTests"
 
-# ---------------------------------------------------------------------------
-# Client
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Client/NetworkClient.swift" << 'EOF'
+# ===========================================================================
+# Network — abstraction target
+# ===========================================================================
+
+# --- Client -----------------------------------------------------------------
+cat > "$TARGET/Sources/Network/Client/NetworkClient.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
   import FoundationNetworking
 #endif
 
-/// Abstraction over URLSession for testability.
+/// Abstraction over URLSession for testability. The `URLSession` conformance
+/// lives here (trivial glue) so callers in any module can pass `.shared`.
 public protocol NetworkClient: Sendable {
   func data(for request: URLRequest, delegate: (any URLSessionTaskDelegate)?) async throws -> (
     Data, URLResponse
@@ -45,7 +54,7 @@ public protocol NetworkClient: Sendable {
 extension URLSession: NetworkClient {}
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/NetworkError.swift" << 'EOF'
+cat > "$TARGET/Sources/Network/Client/NetworkError.swift" << 'EOF'
 import Foundation
 
 /// Errors thrown by NetworkService.
@@ -60,8 +69,240 @@ public enum NetworkError: Error, Equatable {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/HTTPClient.swift" << 'EOF'
+# --- Endpoint ---------------------------------------------------------------
+cat > "$TARGET/Sources/Network/Endpoint/BaseURL.swift" << 'EOF'
+// TODO: Replace with your app's actual base URLs.
+// Add a case for each host your app communicates with.
+//
+// Example:
+//   case api    = "https://api.yourapp.com"
+//   case cdn    = "https://cdn.yourapp.com"
+//
+public enum BaseURL: String, Sendable {
+    case api = "https://api.example.com"
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/Endpoint.swift" << 'EOF'
 import Foundation
+
+/// Defines the information needed to build a network request.
+public protocol Endpoint: Sendable {
+  var baseURL: BaseURL { get }
+  var path: String { get }
+  var queryParameters: [String: String]? { get }
+  var headers: [String: String]? { get }
+  var fixturesPath: String? { get }
+}
+
+extension Endpoint {
+  public var fixturesPath: String? { nil }
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/GetEndpoint.swift" << 'EOF'
+import Foundation
+
+/// Marker protocol for read-only GET requests.
+public protocol GetEndpoint: Endpoint {}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/PostEndpoint.swift" << 'EOF'
+import Foundation
+
+/// Endpoint for requests that send an encodable body.
+public protocol PostEndpoint<Body>: Endpoint {
+  associatedtype Body: NetworkRequestBody
+  var requestBody: Body? { get }
+}
+
+public typealias NetworkRequestBody = Sendable & Encodable
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/DeleteEndpoint.swift" << 'EOF'
+import Foundation
+
+/// Marker protocol for DELETE requests.
+public protocol DeleteEndpoint: Endpoint {}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/InterpretedHTTPMethod.swift" << 'EOF'
+import Foundation
+
+/// String-based representation of HTTP methods.
+public enum InterpretedHTTPMethod: String {
+  case get = "GET"
+  case post = "POST"
+  case put = "PUT"
+  case delete = "DELETE"
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/InterpretedEndpoint.swift" << 'EOF'
+import Foundation
+
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
+/// A fully constructed request derived from an Endpoint.
+public struct InterpretedEndpoint {
+  public let urlRequest: URLRequest
+  public init(urlRequest: URLRequest) { self.urlRequest = urlRequest }
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Endpoint/EndpointInterpreter.swift" << 'EOF'
+import Foundation
+
+#if canImport(FoundationNetworking)
+  import FoundationNetworking
+#endif
+
+/// Converts Endpoint values into URLRequest objects. Public so the live
+/// service (in NetworkLive) can build requests from the abstraction.
+public struct EndpointInterpreter {
+  public static func interpret(endpoint: Endpoint) -> URLRequest? {
+    guard let url = URL(string: endpoint.baseURL.rawValue + endpoint.path) else { return nil }
+    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    components?.queryItems = endpoint.queryParameters?.map {
+      URLQueryItem(name: $0.key, value: $0.value)
+    }
+
+    guard let finalURL = components?.url else { return nil }
+    var request = URLRequest(url: finalURL)
+    request.allHTTPHeaderFields = endpoint.headers
+
+    if let post = endpoint as? any PostEndpoint {
+      request.httpMethod = InterpretedHTTPMethod.post.rawValue
+      if let body = post.requestBody {
+        request.httpBody = try? JSONEncoder().encode(body)
+      }
+    } else if endpoint is DeleteEndpoint {
+      request.httpMethod = InterpretedHTTPMethod.delete.rawValue
+    } else if endpoint is GetEndpoint {
+      request.httpMethod = InterpretedHTTPMethod.get.rawValue
+    }
+
+    return request
+  }
+}
+EOF
+
+# --- Service (protocol) -----------------------------------------------------
+cat > "$TARGET/Sources/Network/Service/NetworkService.swift" << 'EOF'
+import Foundation
+
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
+/// Interface for fetching and decoding network resources.
+public protocol NetworkService: Sendable {
+    func fetch<T: Decodable>(
+        from endpoint: Endpoint,
+        dateFormat: DateFormat?
+    ) async throws -> T
+}
+
+extension NetworkService {
+    /// Fetches a resource and ignores the decoded response.
+    public func fetch(from endpoint: Endpoint, dateFormat: DateFormat?) async throws {
+        _ = try await fetch(from: endpoint, dateFormat: dateFormat) as EmptyDecodable
+    }
+
+    public func fetch(from endpoint: Endpoint) async throws {
+        _ = try await fetch(from: endpoint, dateFormat: nil) as EmptyDecodable
+    }
+
+    public func fetch<T: Decodable>(from endpoint: Endpoint) async throws -> T {
+        try await fetch(from: endpoint, dateFormat: nil)
+    }
+}
+EOF
+
+# --- Decoding ---------------------------------------------------------------
+cat > "$TARGET/Sources/Network/Decoding/DateFormat.swift" << 'EOF'
+public import Foundation
+
+/// Convenience enum so call-sites can pass either a built-in
+/// strategy or a named custom formatter.
+public enum DateFormat {
+    /// Use one of JSONDecoder's standard strategies.
+    case strategy(JSONDecoder.DateDecodingStrategy)
+    /// Provide a custom formatter (internally mapped to `.formatted(_)`).
+    case custom(DateFormatter)
+
+    public var decoderStrategy: JSONDecoder.DateDecodingStrategy {
+        switch self {
+        case .strategy(let s): return s
+        case .custom(let fmt): return .formatted(fmt)
+        }
+    }
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Decoding/EmptyDecodable.swift" << 'EOF'
+/// A placeholder type used to decode empty responses.
+public struct EmptyDecodable: Decodable, ExpressibleByNilLiteral {
+  public init(nilLiteral: ()) {}
+  public init(from decoder: Decoder) throws {}
+}
+EOF
+
+cat > "$TARGET/Sources/Network/Decoding/JSONDecoder+MixedDate.swift" << 'EOF'
+public import Foundation
+
+extension JSONDecoder {
+    /// A decoder that handles both ISO-8601 timestamps ("2025-05-30T18:30:00Z")
+    /// and plain date strings ("2025-05-30") in the same payload.
+    public static func mixedDateDecoder() -> JSONDecoder {
+        let d = JSONDecoder()
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+
+        let short = DateFormatter()
+        short.dateFormat = "yyyy-MM-dd"
+        short.timeZone   = TimeZone.current
+        short.locale     = .init(identifier: "en_US_POSIX")
+
+        d.dateDecodingStrategy = .custom { decoder in
+            let c = try decoder.singleValueContainer()
+            let s = try c.decode(String.self)
+            if let date = iso.date(from: s)   { return date }
+            if let date = short.date(from: s) { return date }
+            throw DecodingError.dataCorruptedError(
+                in: c,
+                debugDescription: "Unrecognised date: \(s)"
+            )
+        }
+        return d
+    }
+}
+EOF
+
+# --- Utility ----------------------------------------------------------------
+cat > "$TARGET/Sources/Network/Utility/URLResponse+Success.swift" << 'EOF'
+import Foundation
+
+extension URLResponse {
+    /// Returns true if the HTTP response status code is in the 200–299 range.
+    public var isHTTPSuccess: Bool {
+        guard let httpResponse = self as? HTTPURLResponse else { return false }
+        return (200...299).contains(httpResponse.statusCode)
+    }
+}
+EOF
+
+# ===========================================================================
+# NetworkLive — concrete implementation target (depends on Network)
+# ===========================================================================
+
+# --- Client -----------------------------------------------------------------
+cat > "$TARGET/Sources/NetworkLive/Client/HTTPClient.swift" << 'EOF'
+import Foundation
+import Network
 
 public struct HTTPClient: NetworkClient {
     private let session: any NetworkClient
@@ -142,11 +383,10 @@ public struct HTTPClient: NetworkClient {
 }
 EOF
 
-# ---------------------------------------------------------------------------
-# Adapters
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/BearerHTTPClient/BearerRequestAdapter.swift" << 'EOF'
+# --- Adapters ---------------------------------------------------------------
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient/BearerRequestAdapter.swift" << 'EOF'
 public import Foundation
+import Network
 
 public protocol NetworkAdapter: Sendable {
     func adapt(_ request: URLRequest) async throws -> URLRequest
@@ -178,7 +418,7 @@ public struct BearerRequestAdapter: NetworkAdapter {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/HeaderConfiguration.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/HeaderConfiguration.swift" << 'EOF'
 import Foundation
 
 #if canImport(FoundationNetworking)
@@ -198,7 +438,7 @@ public struct HeaderConfiguration: Sendable {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/BearerHTTPClient/TokenRefreshing.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/BearerHTTPClient/TokenRefreshing.swift" << 'EOF'
 import Foundation
 
 /// Abstraction for objects capable of refreshing bearer tokens.
@@ -207,11 +447,10 @@ public protocol TokenRefreshing: Sendable {
 }
 EOF
 
-# ---------------------------------------------------------------------------
-# Retry policies
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/RetryPolicy/RetryDirective.swift" << 'EOF'
+# --- Retry policies ---------------------------------------------------------
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/RetryDirective.swift" << 'EOF'
 import Foundation
+import Network
 
 /// Possible actions after inspecting an HTTP error.
 public enum RetryDecision {
@@ -231,7 +470,9 @@ public protocol RetryPolicy: Sendable {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/RetryPolicy/BasicRetryPolicy.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/BasicRetryPolicy.swift" << 'EOF'
+import Network
+
 /// Retries once on 5xx with a short backoff. Never refreshes tokens.
 public struct BasicRetryPolicy: RetryPolicy {
     private let backoffBase = 200 // ms
@@ -252,7 +493,9 @@ public struct BasicRetryPolicy: RetryPolicy {
 }
 EOF
 
-cat > "$TARGET/Sources/NetworkKit/Client/HTTP/RetryPolicy/BearerRetryPolicy.swift" << 'EOF'
+cat > "$TARGET/Sources/NetworkLive/Client/HTTP/RetryPolicy/BearerRetryPolicy.swift" << 'EOF'
+import Network
+
 /// Refreshes the bearer token on the first 401/403, then retries once.
 /// Falls back to basic 5xx retry for server errors.
 public struct BearerRetryPolicy: RetryPolicy {
@@ -280,162 +523,10 @@ public struct BearerRetryPolicy: RetryPolicy {
 }
 EOF
 
-# ---------------------------------------------------------------------------
-# Endpoint
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Endpoint/BaseURL.swift" << 'EOF'
-// TODO: Replace with your app's actual base URLs.
-// Add a case for each host your app communicates with.
-//
-// Example:
-//   case api    = "https://api.yourapp.com"
-//   case cdn    = "https://cdn.yourapp.com"
-//
-public enum BaseURL: String, Sendable {
-    case api = "https://api.example.com"
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/Endpoint.swift" << 'EOF'
-import Foundation
-
-/// Defines the information needed to build a network request.
-public protocol Endpoint: Sendable {
-  var baseURL: BaseURL { get }
-  var path: String { get }
-  var queryParameters: [String: String]? { get }
-  var headers: [String: String]? { get }
-  var fixturesPath: String? { get }
-}
-
-extension Endpoint {
-  public var fixturesPath: String? { nil }
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/GetEndpoint.swift" << 'EOF'
-import Foundation
-
-/// Marker protocol for read-only GET requests.
-public protocol GetEndpoint: Endpoint {}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/PostEndpoint.swift" << 'EOF'
-import Foundation
-
-/// Endpoint for requests that send an encodable body.
-public protocol PostEndpoint<Body>: Endpoint {
-  associatedtype Body: NetworkRequestBody
-  var requestBody: Body? { get }
-}
-
-public typealias NetworkRequestBody = Sendable & Encodable
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/DeleteEndpoint.swift" << 'EOF'
-import Foundation
-
-/// Marker protocol for DELETE requests.
-public protocol DeleteEndpoint: Endpoint {}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/InterpretedHTTPMethod.swift" << 'EOF'
-import Foundation
-
-/// String-based representation of HTTP methods.
-public enum InterpretedHTTPMethod: String {
-  case get = "GET"
-  case post = "POST"
-  case put = "PUT"
-  case delete = "DELETE"
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/InterpretedEndpoint.swift" << 'EOF'
-import Foundation
-
-#if canImport(FoundationNetworking)
-  import FoundationNetworking
-#endif
-
-/// A fully constructed request derived from an Endpoint.
-public struct InterpretedEndpoint {
-  let urlRequest: URLRequest
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Endpoint/EndpointInterpreter.swift" << 'EOF'
-import Foundation
-
-#if canImport(FoundationNetworking)
-  import FoundationNetworking
-#endif
-
-/// Converts Endpoint values into URLRequest objects.
-public struct EndpointInterpreter {
-  static func interpret(endpoint: Endpoint) -> URLRequest? {
-    guard let url = URL(string: endpoint.baseURL.rawValue + endpoint.path) else { return nil }
-    var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-    components?.queryItems = endpoint.queryParameters?.map {
-      URLQueryItem(name: $0.key, value: $0.value)
-    }
-
-    guard let finalURL = components?.url else { return nil }
-    var request = URLRequest(url: finalURL)
-    request.allHTTPHeaderFields = endpoint.headers
-
-    if let post = endpoint as? any PostEndpoint {
-      request.httpMethod = InterpretedHTTPMethod.post.rawValue
-      if let body = post.requestBody {
-        request.httpBody = try? JSONEncoder().encode(body)
-      }
-    } else if endpoint is DeleteEndpoint {
-      request.httpMethod = InterpretedHTTPMethod.delete.rawValue
-    } else if endpoint is GetEndpoint {
-      request.httpMethod = InterpretedHTTPMethod.get.rawValue
-    }
-
-    return request
-  }
-}
-EOF
-
-# ---------------------------------------------------------------------------
-# Service
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Service/NetworkService.swift" << 'EOF'
-import Foundation
-
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
-
-/// Interface for fetching and decoding network resources.
-public protocol NetworkService: Sendable {
-    func fetch<T: Decodable>(
-        from endpoint: Endpoint,
-        dateFormat: DateFormat?
-    ) async throws -> T
-}
-
-extension NetworkService {
-    /// Fetches a resource and ignores the decoded response.
-    public func fetch(from endpoint: Endpoint, dateFormat: DateFormat?) async throws {
-        _ = try await fetch(from: endpoint, dateFormat: dateFormat) as EmptyDecodable
-    }
-
-    public func fetch(from endpoint: Endpoint) async throws {
-        _ = try await fetch(from: endpoint, dateFormat: nil) as EmptyDecodable
-    }
-
-    public func fetch<T: Decodable>(from endpoint: Endpoint) async throws -> T {
-        try await fetch(from: endpoint, dateFormat: nil)
-    }
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Service/NetworkServiceLive.swift" << 'EOF'
+# --- Service (live) ---------------------------------------------------------
+cat > "$TARGET/Sources/NetworkLive/Service/NetworkServiceLive.swift" << 'EOF'
 public import Foundation
+import Network
 
 /// Production implementation of NetworkService.
 public struct NetworkServiceLive: NetworkService {
@@ -471,80 +562,16 @@ public struct NetworkServiceLive: NetworkService {
 }
 EOF
 
-# ---------------------------------------------------------------------------
-# Decoding
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Decoding/DateFormat.swift" << 'EOF'
-public import Foundation
+# ===========================================================================
+# Tests (NetworkLive) — placeholder so the test target isn't empty
+# ===========================================================================
+cat > "$TARGET/Tests/NetworkLiveTests/NetworkLiveTests.swift" << 'EOF'
+import XCTest
+@testable import NetworkLive
 
-/// Convenience enum so call-sites can pass either a built-in
-/// strategy or a named custom formatter.
-public enum DateFormat {
-    /// Use one of JSONDecoder's standard strategies.
-    case strategy(JSONDecoder.DateDecodingStrategy)
-    /// Provide a custom formatter (internally mapped to `.formatted(_)`).
-    case custom(DateFormatter)
-
-    var decoderStrategy: JSONDecoder.DateDecodingStrategy {
-        switch self {
-        case .strategy(let s): return s
-        case .custom(let fmt): return .formatted(fmt)
-        }
-    }
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Decoding/EmptyDecodable.swift" << 'EOF'
-/// A placeholder type used to decode empty responses.
-public struct EmptyDecodable: Decodable, ExpressibleByNilLiteral {
-  public init(nilLiteral: ()) {}
-  public init(from decoder: Decoder) throws {}
-}
-EOF
-
-cat > "$TARGET/Sources/NetworkKit/Decoding/JSONDecoder+MixedDate.swift" << 'EOF'
-public import Foundation
-
-extension JSONDecoder {
-    /// A decoder that handles both ISO-8601 timestamps ("2025-05-30T18:30:00Z")
-    /// and plain date strings ("2025-05-30") in the same payload.
-    public static func mixedDateDecoder() -> JSONDecoder {
-        let d = JSONDecoder()
-
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime]
-
-        let short = DateFormatter()
-        short.dateFormat = "yyyy-MM-dd"
-        short.timeZone   = TimeZone.current
-        short.locale     = .init(identifier: "en_US_POSIX")
-
-        d.dateDecodingStrategy = .custom { decoder in
-            let c = try decoder.singleValueContainer()
-            let s = try c.decode(String.self)
-            if let date = iso.date(from: s)   { return date }
-            if let date = short.date(from: s) { return date }
-            throw DecodingError.dataCorruptedError(
-                in: c,
-                debugDescription: "Unrecognised date: \(s)"
-            )
-        }
-        return d
-    }
-}
-EOF
-
-# ---------------------------------------------------------------------------
-# Utility
-# ---------------------------------------------------------------------------
-cat > "$TARGET/Sources/NetworkKit/Utility/URLResponse+Success.swift" << 'EOF'
-import Foundation
-
-extension URLResponse {
-    /// Returns true if the HTTP response status code is in the 200–299 range.
-    public var isHTTPSuccess: Bool {
-        guard let httpResponse = self as? HTTPURLResponse else { return false }
-        return (200...299).contains(httpResponse.statusCode)
+final class NetworkLiveTests: XCTestCase {
+    func testScaffoldCompiles() {
+        XCTAssertTrue(true)
     }
 }
 EOF
@@ -554,39 +581,46 @@ EOF
 # ---------------------------------------------------------------------------
 if [ ! -f "$TARGET/Package.swift" ]; then
 cat > "$TARGET/Package.swift" << 'EOF'
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
-    name: "Network",
-    platforms: [.iOS(.v17)],
+    name: "Networking",
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "NetworkKit", targets: ["NetworkKit"]),
+        .library(name: "Network", targets: ["Network"]),
+        .library(name: "NetworkLive", targets: ["NetworkLive"]),
     ],
     targets: [
         .target(
-            name: "NetworkKit",
-            path: "Sources/NetworkKit"
+            name: "Network",
+            path: "Sources/Network"
+        ),
+        .target(
+            name: "NetworkLive",
+            dependencies: ["Network"],
+            path: "Sources/NetworkLive"
         ),
         .testTarget(
-            name: "NetworkKitTests",
-            dependencies: ["NetworkKit"],
-            path: "Tests/NetworkKitTests"
+            name: "NetworkLiveTests",
+            dependencies: ["NetworkLive"],
+            path: "Tests/NetworkLiveTests"
         ),
     ]
 )
 EOF
     echo "  ✓ Package.swift created"
 else
-    echo "  ↷ Package.swift already exists — skipping (add NetworkKit target manually)"
+    echo "  ↷ Package.swift already exists — skipping (add Network + NetworkLive targets manually)"
 fi
 
 echo ""
-echo "✅ NetworkKit scaffolded at $TARGET"
+echo "✅ Networking scaffolded at $TARGET (products: Network, NetworkLive)"
 echo ""
 echo "Next steps:"
-echo "  1. Open $TARGET/Sources/NetworkKit/Endpoint/BaseURL.swift"
+echo "  1. Open $TARGET/Sources/Network/Endpoint/BaseURL.swift"
 echo "     and replace the placeholder with your app's actual base URLs."
 echo "  2. If your app uses auth headers beyond Authorization: Bearer,"
-echo "     customize BearerRequestAdapter.swift."
-echo "  3. Add the NetworkKit library to any target that needs it."
+echo "     customize NetworkLive's BearerRequestAdapter.swift."
+echo "  3. Feature code depends on the 'Network' product; wire 'NetworkLive'"
+echo "     (HTTPClient + NetworkServiceLive) only at the composition root."

@@ -2,6 +2,8 @@
 
 Endpoints are pure value types that describe a request — URL, method, body, query params — without touching networking code. `EndpointInterpreter` converts them to `URLRequest`.
 
+> **Module:** all endpoint types (and `EndpointInterpreter`) live in the **`Network`** abstraction product.
+
 ## Core Shape
 
 ```swift

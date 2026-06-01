@@ -2,6 +2,8 @@
 
 `NetworkService` is the interface feature data-layer services depend on. It decouples features from `HTTPClient` internals.
 
+> **Module:** the `NetworkService` protocol, `DateFormat`, `EmptyDecodable`, and the decoders live in **`Network`**; `NetworkServiceLive` lives in **`NetworkLive`**. Feature services `import Network` and depend on the protocol; the composition root `import NetworkLive` to build `NetworkServiceLive`.
+
 ## Protocol
 
 ```swift
