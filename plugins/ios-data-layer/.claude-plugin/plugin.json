@@ -15,8 +15,5 @@
     "mapper",
     "async-stream",
     "store"
-  ],
-  "agents": [
-    "./agents/make-data-layer.md"
   ]
 }
