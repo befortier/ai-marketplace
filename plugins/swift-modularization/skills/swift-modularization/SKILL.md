@@ -19,6 +19,14 @@ the modules inside it are targets + products. A `Networking` package exposes `Ne
 package with several targets over a package per module — far fewer manifests, cleaner
 area boundaries, same enforced dependency direction.
 
+## One type per file
+
+A file holds **one primary type**. Name the file after it (`ChatContainer.swift` holds
+`ChatContainer`). Small, tightly-coupled companions of that type may share its file — a
+private helper, a nested enum, the type's own `extension`s — but a second top-level type
+that stands on its own gets its own file. If a file accretes unrelated types, split it.
+This keeps types findable by filename and packages reviewable by directory.
+
 ## Where to look
 
 Open the reference for what you're doing:
@@ -28,8 +36,12 @@ Open the reference for what you're doing:
 - **Slicing a product domain into targets (Data / UI / per-experience) within one
   package, and the dependency direction between them** →
   [references/domain-clusters.md](references/domain-clusters.md)
-- **Wiring the object graph in the thin app target — the Composer pattern and the
-  session-gated key/lock root** → [references/composition-root.md](references/composition-root.md)
+- **Wiring the object graph in the thin app target — the Composer pattern, the
+  session-gated key/lock root, stateless composers, and debug-vs-release composition** →
+  [references/composition-root.md](references/composition-root.md)
+- **Lifetime and state: signed-in / signed-out scopes and the containers (live socket
+  subscriptions, in-memory stores) they own** →
+  [references/scopes-and-containers.md](references/scopes-and-containers.md)
 - **Authoring a package that exposes multiple targets/products** →
   [references/package-new-package.md](references/package-new-package.md)
 - **Maintaining the app target's `Package.swift` dependencies** →

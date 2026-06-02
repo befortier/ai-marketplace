@@ -86,3 +86,53 @@ are built inside a `{ session in … }` factory rather than eagerly.
 For how packages are declared and depended upon, see
 [package-new-package.md](package-new-package.md) and
 [package-app-dependencies.md](package-app-dependencies.md).
+
+## Composers are stateless
+
+A Composer is a pure factory: an `enum` (never instantiable) whose `make(...)` builds and
+returns a value, then forgets it. It holds **no stored properties and no state** — the
+graph it builds is owned by the caller (a [scope or container](scopes-and-containers.md)),
+not by the Composer. If you find yourself wanting a Composer to *remember* what it built,
+you don't want a Composer — you want a scope or a container.
+
+- `enum FooComposer { static func make(...) -> any Foo }` — yes.
+- A `class`/`struct` Composer with stored deps it hands out repeatedly — no; that's a
+  scope or container wearing a Composer's name.
+
+## Defer composition to the app
+
+Composition lives in the **app target** (or a dedicated `AppComposition` package), never
+inside feature packages. A feature package exposes its abstractions and `…Live` types and
+stays ignorant of how it's wired. Only the composition root imports the `…Live` modules
+and knows the concrete graph. This keeps features free of each other and free of the
+infrastructure choices made above them.
+
+## Debug vs. release composition
+
+A Composer is the one place allowed to vary the graph by build configuration. Branch on
+`#if DEBUG` *inside* the Composer and return the **same abstraction** from both arms — the
+debug arm decorates the real value (attaches a logger/recorder), the release arm returns
+it plain. Callers can't tell the difference; only the Composer knows.
+
+```swift
+#if DEBUG
+import DebugTools
+
+enum URLSessionComposer {
+    static func make() -> any NetworkClient {
+        // Debug builds wrap the real client in a recorder/logger decorator.
+        RecordingNetworkClient(wrapped: URLSession.shared)
+    }
+}
+#else
+enum URLSessionComposer {
+    static func make() -> any NetworkClient {
+        URLSession.shared
+    }
+}
+#endif
+```
+
+The decorator (`RecordingNetworkClient`) conforms to the same protocol it wraps, so the
+debug instrumentation is invisible to everything downstream. Keep the `#if DEBUG` fence in
+the Composer — never leak build-configuration checks into feature code.
