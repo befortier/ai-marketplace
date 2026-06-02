@@ -40,6 +40,6 @@ let package = Package(
 - Exclude the `Packages/` directory from the app target's own sources.
 - Add a dependency here whenever a new area package needs to be wired into the app.
 
-In practice the app pulls only one product directly — a single `AppComposition` area
-package that re-exports the wired graph — and `AppComposition` is the one place that
-depends on every `…Live` product. See [composition-root.md](composition-root.md).
+In practice the app target is the one place that depends on every `…Live` product and
+assembles the graph. How that wiring is structured — stateless enum composers that build
+each feature's dependencies and navigation tree — is the `ios-composition` skill's domain.

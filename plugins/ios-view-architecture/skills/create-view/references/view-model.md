@@ -2,6 +2,18 @@
 
 The ViewModel is the single source of truth for a feature. It owns all published state and handles all actions from views.
 
+## Contents
+
+- [Core Shape](#core-shape)
+- [Nesting Convention](#nesting-convention)
+- [Dependencies](#dependencies)
+- [Action Handling](#action-handling)
+- [State Mutation](#state-mutation)
+- [Observing Stores via AsyncStream](#observing-stores-via-asyncstream)
+- [Logging failures](#logging-failures)
+- [Exit Pattern](#exit-pattern)
+- [Rules](#rules)
+
 ## Core Shape
 
 ```swift
@@ -143,6 +155,10 @@ private func observe() async {
 `chain` here provides `LikedState(isLiked: false)` as an initial value so `combineLatest` can start emitting even before the liked store has data. The mapper receives both values and produces the view state.
 
 > `swift-async-algorithms` is required for `combineLatest` and `chain`. Add it to `Package.swift` if not already present.
+
+## Logging failures
+
+When a load or action attempt fails, log the failure so it stays observable. If a logging-failure skill exists, invoke it and follow its pattern; otherwise mirror how other view models in this codebase already handle failures. A dedicated logging pattern will be defined later — keep this light for now and stay consistent with what's already there.
 
 ## Exit Pattern
 

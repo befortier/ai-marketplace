@@ -2,6 +2,15 @@
 
 The Mapper transforms domain models into view state. It is the only place where domain types are converted to view-renderable types.
 
+## Contents
+
+- [Core Shape](#core-shape)
+- [Where It Lives](#where-it-lives)
+- [Reusable Component Mappers](#reusable-component-mappers)
+- [Injection](#injection)
+- [Mapping Errors](#mapping-errors)
+- [Rules](#rules)
+
 ## Core Shape
 
 ```swift

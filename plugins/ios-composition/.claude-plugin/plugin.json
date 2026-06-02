@@ -1,0 +1,18 @@
+{
+  "name": "ios-composition",
+  "description": "Compose the dependency graph and infer the navigation tree in the main app using stateless enum composers, from feature containers, app sessions, and local state — packages defer composition and navigation upward. Composition is wiring + navigation only: no logic, analytics, or network calls. Use when wiring a feature's dependencies into the app or deciding where the navigation tree lives.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "composition",
+    "composition-root",
+    "navigation",
+    "dependency-injection",
+    "scopes",
+    "containers"
+  ]
+}

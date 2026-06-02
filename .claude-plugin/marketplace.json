@@ -158,7 +158,6 @@
         "architecture",
         "packages",
         "dependency-injection",
-        "composition-root",
         "ios"
       ]
     },
@@ -260,6 +259,64 @@
         "callasfunction",
         "sendable",
         "dependency-injection"
+      ]
+    },
+    {
+      "name": "ios-container",
+      "description": "Defines the container pattern — a Sendable holder with no functions and mutable state behind a Mutex, holding a domain's scope-lived in-memory state (a store/cache or a live subscription). Use when creating a container, deciding where to hold in-memory state, or choosing between holding state versus composing a stateless dependency on access.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-container",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "container",
+        "in-memory-state",
+        "sendable",
+        "mutex",
+        "scope",
+        "subscription"
+      ]
+    },
+    {
+      "name": "ios-composition",
+      "description": "Compose the dependency graph and infer the navigation tree in the main app using stateless enum composers, from feature containers, app sessions, and local state — packages defer composition and navigation upward. Composition is wiring + navigation only: no logic, analytics, or network calls. Use when wiring a feature's dependencies into the app or deciding where the navigation tree lives.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-composition",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "composition",
+        "composition-root",
+        "navigation",
+        "dependency-injection",
+        "scopes",
+        "containers"
+      ]
+    },
+    {
+      "name": "ios-feature-builder",
+      "description": "Plan-only orchestrator for building a new iOS feature end-to-end. Walks an approval-gated, ordered flow — modularization, view architecture, data layer, use cases, container, composition — and delegates each step to its specialist skill, ending in a comprehensive handoff plan. Use when starting a brand-new iOS feature and you want a reviewed plan before any code is written.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-feature-builder",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "feature",
+        "planning",
+        "orchestrator",
+        "architecture",
+        "modularization",
+        "composition",
+        "approval-gated"
       ]
     }
   ]

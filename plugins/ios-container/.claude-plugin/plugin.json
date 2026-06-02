@@ -1,0 +1,18 @@
+{
+  "name": "ios-container",
+  "description": "Defines the container pattern — a Sendable holder with no functions and mutable state behind a Mutex, holding a domain's scope-lived in-memory state (a store/cache or a live subscription). Use when creating a container, deciding where to hold in-memory state, or choosing between holding state versus composing a stateless dependency on access.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "container",
+    "in-memory-state",
+    "sendable",
+    "mutex",
+    "scope",
+    "subscription"
+  ]
+}

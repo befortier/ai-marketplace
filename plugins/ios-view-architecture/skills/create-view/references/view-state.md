@@ -2,6 +2,16 @@
 
 View state is an immutable value type passed into views. It represents exactly what the view needs to render — nothing more.
 
+## Contents
+
+- [Core Shape](#core-shape)
+- [`let` vs `var`](#let-vs-var)
+- [Polymorphic States](#polymorphic-states)
+- [Nested Hierarchy](#nested-hierarchy)
+- [Hoisting Non-Content State](#hoisting-non-content-state)
+- [The Failure Case Is a View State](#the-failure-case-is-a-view-state)
+- [Rules](#rules)
+
 ## Core Shape
 
 ```swift
@@ -81,6 +91,27 @@ MyFeatureContentView(
 ```
 
 The naming convention follows this split: `MyFeatureViewState` wraps everything; `MyFeatureContentViewState` is what the stateless content view renders.
+
+## The Failure Case Is a View State
+
+When a feature can fail to load (or its primary action can fail), the failure is **not** just an absence of content — it's a real state the view renders. Give it the same treatment as any other view state: a `Sendable, Hashable` value type with exactly the fields the error UI draws, and no domain or `Error` types.
+
+```swift
+// Conforms to Error so it can sit in the FailableLoadingState `Failure` slot.
+public struct ErrorViewState: Sendable, Hashable, Error {
+    public let title: String
+    public let message: String
+    public let retryButtonTitle: String
+}
+```
+
+The feature's published state then wraps loading, success, and this renderable failure together via `FailableLoadingState` (see [loading-states.md](loading-states.md#failableloadingstateloading-success-failure)):
+
+```swift
+@Published private(set) var viewState: FailableLoadingState<Nothing, MyFeatureContentViewState, ErrorViewState>
+```
+
+The domain error is mapped into `ErrorViewState` in the Mapper layer — the view switches on the loading state and renders the `.failure` case with a real, specific error view, never a blank or perpetually-loading screen. See [loading-states.md](loading-states.md#the-failure-case-is-a-real-renderable-view-state) for how the view renders it.
 
 ## Rules
 
