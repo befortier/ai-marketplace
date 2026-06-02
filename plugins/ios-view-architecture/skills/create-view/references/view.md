@@ -2,6 +2,17 @@
 
 Views are stateless structs that render ViewState and bubble actions upward. Only the root composing view holds a ViewModel.
 
+## Contents
+
+- The Stateless View Contract
+- Action Enums Per Layer
+- Action Wrapping
+- The Root Composing View
+- Body Decomposition
+- Each View Gets Only Its Slice
+- File Organization
+- Rules
+
 ## The Stateless View Contract
 
 Every child view follows the same two-parameter pattern — data in, actions out:
@@ -124,17 +135,22 @@ public struct MyFeatureView: View {
         switch viewModel.viewState {
         case .loading:
             SkeletonView()
-        case .completed(let viewState):
+        case .success(let viewState):
             MyFeatureContentView(
                 viewState: viewState.content,
                 onEvent: { viewModel.handleContentViewEvent($0) }
             )
-        case .failed:
-            ErrorView { Task { await viewModel.retry() } }
+        case .failure(let errorViewState):
+            ErrorView(
+                viewState: errorViewState,
+                onRetry: { Task { await viewModel.retry() } }
+            )
         }
     }
 }
 ```
+
+This switches over `FailableLoadingState` (`.loading` / `.success` / `.failure`). The `.failure` case is a real, renderable state — an `ErrorView` with a retry affordance — not a fall-through (see [loading-states.md](loading-states.md#the-failure-case-is-a-real-renderable-view-state)). A feature that can't fail (its parent renders failure) uses `LoadingState` with just `.loading` / `.completed` instead.
 
 No child view below this point knows about the ViewModel, navigation, or loading state.
 

@@ -7,11 +7,13 @@ cache that exists only while the user is signed in. That state lives in **scopes
 
 Three roles, kept distinct:
 
-| Role          | Kind                  | Holds state? | Lifetime                                  |
-|---------------|-----------------------|--------------|-------------------------------------------|
-| **Composer**  | `enum` + `static make`| No           | None — builds and forgets                 |
-| **Scope**     | object (the graph)    | Yes          | A lifecycle phase (signed-out / signed-in)|
-| **Container** | `final class`/actor   | Yes          | Owned by a scope; lives and dies with it  |
+| Role          | Kind                       | Holds state? | Lifetime                                  |
+|---------------|----------------------------|--------------|-------------------------------------------|
+| **Composer**  | `enum` + `static make`     | No           | None — builds and forgets                 |
+| **Scope**     | object (the graph)         | Yes          | A lifecycle phase (signed-out / signed-in)|
+| **Container** | `Sendable` state holder¹   | Yes          | Owned by a scope; lives and dies with it  |
+
+¹ Containers have their own skill — **`ios-container`** — for the full rules and example.
 
 ## Lifecycle scopes
 
@@ -46,59 +48,26 @@ subscriptions, and caches go with it. Nothing leaks into the next session.
 
 ## Containers
 
-A **container** holds the live, in-memory data a domain needs *within a scope* — a socket
-subscription, an `@Observable` store, a cache built on sign-in. Unlike a composer (which
-forgets) and like a scope (which has a lifetime), a container is a stateful reference type:
-a `final class`, often `@MainActor @Observable` or an `actor`.
+> **Moved.** The container concept now has its own dedicated skill: **`ios-container`**.
+> It covers the full definition, rules, decision guide, and a worked example grounded in
+> the User package's store. See that skill for everything about containers.
 
-A container is **created with its scope and destroyed with it**. It is owned by the scope,
-held as a stored property, and injected into the flows/views that need it. When the scope
-goes away, the container deinits — its subscription cancels, its store empties.
+In one line for context here: a **container** holds and organizes a domain's scope-lived
+in-memory state (an in-memory store/cache, or a subscription held for the duration of a
+scope). It does no composition and has no functions; it is `Sendable`, holds only the
+root-level state (not stateless/composed dependencies like a repository), and guards any
+mutable state behind a `Mutex`. The scope owns its containers and tears them down with it.
 
-```swift
-/// Owns the authenticated chat state: the live socket subscription and the
-/// in-memory message store. Created when the signed-in scope is built (i.e. on
-/// authentication); torn down when that scope is released (sign-out).
-@MainActor
-final class ChatContainer {
-    let store: any ChatStore                 // in-memory, scope-lived
-    private let subscription: Task<Void, Never>
+For the rules, the "do I need a container?" decision guide, and the worked example, use the
+**`ios-container`** skill.
 
-    init(session: AppSession, socket: any WebsocketClient, store: any ChatStore) {
-        self.store = store
-        // Live subscription bound to this container's lifetime.
-        self.subscription = Task { await store.consume(socket.messages(for: session)) }
-    }
-
-    deinit { subscription.cancel() }         // dies with the scope
-}
-```
-
-The scope builds its containers (via composers) and owns them:
-
-```swift
-struct AuthenticatedComposition {            // the signed-in scope
-    let session: AppSession
-    let chatContainer: ChatContainer
-
-    init(session: AppSession) {
-        self.session = session
-        let socket = WebsocketClientComposer.make(session: session)
-        self.chatContainer = ChatContainer(
-            session: session,
-            socket: socket,
-            store: InMemoryChatStore()
-        )
-    }
-}
-```
-
-## Choosing between the three
+## Choosing: composer vs. scope vs. container
 
 - **Build something and hand it off, keeping nothing?** → a **composer**.
 - **A lifetime boundary tied to a session / app phase, the root for that phase's flows?**
   → a **scope**.
 - **Live in-memory state (subscription, store, cache) that must exist only within a phase
-  and vanish when it ends?** → a **container**, owned by that scope.
+  and vanish when it ends?** → a **container** (see the **`ios-container`** skill), owned
+  by that scope.
 
 Composers stay stateless; scopes and containers are where state and lifetime live.

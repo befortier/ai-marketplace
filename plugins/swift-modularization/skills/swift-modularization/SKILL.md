@@ -41,7 +41,9 @@ Open the reference for what you're doing:
   [references/composition-root.md](references/composition-root.md)
 - **Lifetime and state: signed-in / signed-out scopes and the containers (live socket
   subscriptions, in-memory stores) they own** →
-  [references/scopes-and-containers.md](references/scopes-and-containers.md)
+  [references/scopes-and-containers.md](references/scopes-and-containers.md). The container
+  rules, decision guide, and worked example now live in the dedicated **`ios-container`**
+  skill; that reference just frames scopes and points to it.
 - **Authoring a package that exposes multiple targets/products** →
   [references/package-new-package.md](references/package-new-package.md)
 - **Maintaining the app target's `Package.swift` dependencies** →

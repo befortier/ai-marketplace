@@ -1,0 +1,19 @@
+{
+  "name": "ios-feature-builder",
+  "description": "Plan-only orchestrator for building a new iOS feature end-to-end. Walks an approval-gated, ordered flow — modularization, view architecture, data layer, use cases, container, composition — and delegates each step to its specialist skill, ending in a comprehensive handoff plan. Use when starting a brand-new iOS feature and you want a reviewed plan before any code is written.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "feature",
+    "planning",
+    "orchestrator",
+    "architecture",
+    "modularization",
+    "composition",
+    "approval-gated"
+  ]
+}

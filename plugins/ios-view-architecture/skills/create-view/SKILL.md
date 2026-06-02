@@ -1,6 +1,6 @@
 ---
 name: create-view
-description: Scaffold a new iOS SwiftUI feature following a consistent architecture — ViewModel, ViewState, Mapper, loading states, and navigation. Use when creating a new view, feature, or screen in a SwiftUI project.
+description: Scaffolds a new iOS SwiftUI feature following a consistent architecture — ViewModel, ViewState, Mapper, loading states, and navigation. Use when creating a new view, feature, or screen in a SwiftUI project.
 ---
 
 # Create View
@@ -77,9 +77,11 @@ Key rules:
 
 Read [references/loading-states.md](references/loading-states.md) for the full pattern.
 
-- If data loads once: wrap ViewState in `LoadingState`
-- If data can fail and retry: wrap in `FailableLoadingState`
-- If the project has an existing loading state type, use that
+- If data loads once and the parent handles failure: wrap ViewState in `LoadingState`
+- If data can fail and retry: wrap in `FailableLoadingState` and **render the `.failure` case** as a real error view with retry
+- If the project has an existing loading state type, use that (the canonical `LoadingState` / `FailableLoadingState` ship from the `ios-create-loading-state` skill — don't reinvent them)
+
+When an attempt can fail, a failed load or action does two things: it drives the state to a renderable `.failure` (so the user sees a specific error with a retry affordance) **and** it logs the failure so it's observable to developers, consistent with the DEBUG recording / `LogStore` approach. See [references/view-model.md](references/view-model.md#logging-failed-attempts).
 
 ## Step 6: Build the Views
 
@@ -109,15 +111,22 @@ public struct MyFeatureView: View {
         switch viewModel.viewState {
         case .loading:
             SkeletonView()
-        case .completed(let viewState):
+        case .success(let viewState):
             MyFeatureContentView(
                 viewState: viewState.content,
                 onEvent: { viewModel.handleContentViewEvent($0) }
+            )
+        case .failure(let errorViewState):
+            ErrorView(
+                viewState: errorViewState,
+                onRetry: { Task { await viewModel.retry() } }
             )
         }
     }
 }
 ```
+
+This example uses `FailableLoadingState` (`.loading` / `.success` / `.failure`). The `.failure` case is a real, renderable state — an `ErrorView` with a retry affordance — not a fall-through. If the feature genuinely can't fail (parent handles failure), use `LoadingState` with just `.loading` / `.completed`. See [references/loading-states.md](references/loading-states.md).
 
 ### Child view structure
 

@@ -2,6 +2,15 @@
 
 The Mapper transforms domain models into view state. It is the only place where domain types are converted to view-renderable types.
 
+## Contents
+
+- [Core Shape](#core-shape)
+- [Where It Lives](#where-it-lives)
+- [Reusable Component Mappers](#reusable-component-mappers)
+- [Injection](#injection)
+- [Mapping Errors](#mapping-errors)
+- [Rules](#rules)
+
 ## Core Shape
 
 ```swift
@@ -95,6 +104,30 @@ enum MyMappingError: Error {
     case unsupportedVariant(String)
 }
 ```
+
+### Mapping a Failure to a Renderable State
+
+When a feature renders its own failure (see [loading-states.md](loading-states.md) and [view-state.md](view-state.md#the-failure-case-is-a-view-state)), the Mapper also turns a caught error into the renderable `ErrorViewState` — the same domain-to-view-state discipline, just for the failure path. Add an error-mapping method alongside `map(_:)` (named `mapFailure(_:)` to avoid colliding with `FailableLoadingState.mapError`):
+
+```swift
+public protocol MyViewStateMapper: Sendable {
+    func map(_ model: MyDomainModel) throws -> MyContentViewState
+    func mapFailure(_ error: some Error) -> ErrorViewState
+}
+
+extension DefaultMyViewStateMapper {
+    public func mapFailure(_ error: some Error) -> ErrorViewState {
+        // Inspect the typed error here; keep raw errors out of the view.
+        ErrorViewState(
+            title: "Something went wrong",
+            message: "We couldn't load this right now.",
+            retryButtonTitle: "Try Again"
+        )
+    }
+}
+```
+
+This keeps the view free of error inspection: it renders the `.failure` payload directly. Logging the underlying error is the ViewModel's job (see [view-model.md](view-model.md#logging-failed-attempts)) — the Mapper produces presentation, not log records.
 
 ## Rules
 
