@@ -59,21 +59,18 @@ matches the `ios-data-layer` and `ios-view-architecture` skills.
 
 Two scripts in [`scripts/`](../../../scripts/), sharing `_scaffold-lib.sh`:
 
-- `scaffold-package-claude-md.sh <kind> <package-dir>` → `<package-dir>/CLAUDE.md`
-- `scaffold-target-claude-md.sh <role> <package-dir> <target>` → `…/Sources/<target>/CLAUDE.md`
+- `scaffold-package-claude-md.sh <kind> <package-dir> [--force]` → `<package-dir>/CLAUDE.md`
+- `scaffold-target-claude-md.sh <role> <package-dir> <target> [--force]` → `…/Sources/<target>/CLAUDE.md`
 
-They render the matching template under a `# <Name> (<kind/role>)` heading and write it
-into a **managed block** delimited by stable markers:
+They render the matching template under a `# <Name> (<kind/role>)` heading and write it as
+the whole file — **no marker comments**, so nothing the script adds bloats the context the
+`CLAUDE.md` is loaded into.
 
-```
-<!-- swift-modularization:managed START role=data -->
-…generated content…
-<!-- swift-modularization:managed END role=data -->
-```
-
-Re-running is **idempotent**: the script replaces only the content between the markers and
-leaves any hand-written prose outside them untouched. This lets a folder accumulate
-project-specific notes alongside the generated rules without the next run clobbering them.
+The scripts are **create-only**: if the target `CLAUDE.md` already exists they leave it
+untouched and skip it (printing `⏭  exists — skipped`), so a re-run never silently
+overwrites or appends to a file you have since hand-edited. To deliberately regenerate a
+file, pass `--force` — it overwrites that file wholesale (an explicit, reviewable act).
+Once a file is written, it is yours: edit it freely and the scaffolder won't touch it again.
 
 ## Best-practices rationale
 
