@@ -43,16 +43,18 @@ write_claude_md() {
 
   mkdir -p "$(dirname "$file")"
 
+  if [ -e "$file" ] && [ ! -f "$file" ]; then
+    echo "error: target exists but is not a regular file: $file" >&2
+    return 1
+  fi
+
   if [ -e "$file" ] && [ "${SCAFFOLD_FORCE:-0}" != "1" ]; then
     echo "  ⏭  exists — skipped (pass --force to overwrite): $file"
     return 0
   fi
 
-  if [ -e "$file" ]; then
-    printf '%s\n' "$content" > "$file"
-    echo "  ✓ overwrote (--force): $file"
-  else
-    printf '%s\n' "$content" > "$file"
-    echo "  ✓ wrote: $file"
-  fi
+  local verb="wrote"
+  [ -e "$file" ] && verb="overwrote (--force)"
+  printf '%s\n' "$content" > "$file"
+  echo "  ✓ $verb: $file"
 }

@@ -31,11 +31,12 @@ usage() {
 }
 
 # Extract --force/-f, leave the positional args.
-SCAFFOLD_FORCE=0
+SCAFFOLD_FORCE="${SCAFFOLD_FORCE:-0}"
 POSITIONAL=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --force|-f) SCAFFOLD_FORCE=1; shift ;;
+    --*) echo "error: unknown option: $1" >&2; echo >&2; usage >&2; exit 2 ;;
     *) POSITIONAL+=("$1"); shift ;;
   esac
 done
