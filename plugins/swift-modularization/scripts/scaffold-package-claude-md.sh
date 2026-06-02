@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 # scaffold-package-claude-md.sh
-# Writes (or idempotently patches) a per-package CLAUDE.md from a lean template,
-# keyed by package KIND.
+# Creates a per-package CLAUDE.md from a lean template, keyed by package KIND.
+# CREATE-ONLY: if the CLAUDE.md already exists it is left untouched and skipped;
+# pass --force to overwrite it.
 #
 # Tiers are ADDITIVE: ancestor CLAUDE.md files (app-project ios/CLAUDE.md, etc.)
 # auto-load, so this package tier carries only its own delta and defers upward.
 #
 # Usage:
-#   scaffold-package-claude-md.sh <kind> <package-dir>
+#   scaffold-package-claude-md.sh <kind> <package-dir> [--force]
 #
 #   <kind>         domain | infra
 #   <package-dir>  path to the package root (where Package.swift lives)
+#   --force, -f    overwrite an existing CLAUDE.md instead of skipping it
 #
-# Writes:  <package-dir>/CLAUDE.md   (creates or patches the managed block)
+# Writes:  <package-dir>/CLAUDE.md   (only if absent, unless --force)
 #
 # Examples:
 #   scaffold-package-claude-md.sh domain App/Packages/Chat
-#   scaffold-package-claude-md.sh infra  App/Packages/Networking
+#   scaffold-package-claude-md.sh infra  App/Packages/Networking --force
 
 set -euo pipefail
 
@@ -25,8 +27,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/_scaffold-lib.sh"
 
 usage() {
-  sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
+
+# Extract --force/-f, leave the positional args.
+SCAFFOLD_FORCE=0
+POSITIONAL=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --force|-f) SCAFFOLD_FORCE=1; shift ;;
+    *) POSITIONAL+=("$1"); shift ;;
+  esac
+done
+if [ ${#POSITIONAL[@]} -gt 0 ]; then set -- "${POSITIONAL[@]}"; else set --; fi
+export SCAFFOLD_FORCE
 
 KIND="${1:-}"
 PKG_DIR="${2:-}"
@@ -61,6 +75,4 @@ case "$KIND" in
 esac
 
 CONTENT="$(render_template "$TEMPLATE" "$HEADING")"
-write_managed_block "$PKG_DIR/CLAUDE.md" "kind=$KIND" "$CONTENT"
-
-echo "✅ package CLAUDE.md scaffolded ($KIND) at $PKG_DIR/CLAUDE.md"
+write_claude_md "$PKG_DIR/CLAUDE.md" "$CONTENT"
