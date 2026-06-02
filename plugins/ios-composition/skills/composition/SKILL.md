@@ -114,6 +114,36 @@ public struct SomeFeatureView: View {
 }
 ```
 
+## App Package Folder Layout
+
+The main App / App package organizes its composition source by **one folder per domain or
+infrastructure concern**. Each folder holds that domain's composers and any main-app
+activities (bootstrapping, lifecycle wiring) for that package.
+
+Every composer protocol and any associated implementation live in **separate files**.
+
+```
+AppComposition/
+├── Network/                        # HTTP client setup, NetworkClientComposer
+│   └── NetworkClientComposer.swift
+├── Websocket/                      # WebSocket client + session bootstrapping
+│   ├── WebsocketClientComposer.swift
+│   └── BootstrapWebsocketUseCase.swift
+├── User/                           # User domain composers + bootstrap
+│   ├── UserComposer.swift
+│   └── BootstrapUserContainerUseCase.swift
+├── <Domain>/                       # One folder per additional domain or infra area
+│   ├── <Domain>Composer.swift
+│   └── Bootstrap<Domain>UseCase.swift
+└── AppComposition.swift            # Root: ties all domain folders into the session graph
+```
+
+**Rules:**
+- **One folder per domain or infrastructure area.** Don't put all composers in a flat list at the root.
+- **A folder's scope is the package it composes.** `Network/` wires the `Networking` package; `User/` wires the `User` package.
+- **Bootstrap use cases live alongside their domain's composers** — they are main-app activities for that domain, not feature-package code.
+- **Composer protocols (if any) and their implementations are separate files** — same rule as all other layers.
+
 ## See also
 
 - **`ios-container` skill** — feature containers that hold scope-lived state, created on auth and torn down with the scope. A primary input to composition.

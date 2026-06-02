@@ -92,25 +92,31 @@ Each reference file above contains a **Testing** section with layer-specific tes
 
 ## File Organization
 
+A data-layer package uses one top-level folder per responsibility. Each protocol and its
+default/Live implementation live in **separate files** — never combined in one file.
+
 ```
 <Domain>Data/
-├── Models/
+├── Model/                             # Domain models (Sendable + Hashable structs)
 │   ├── <Domain>.swift
 │   └── <Domain>+<SubType>.swift      (extensions for nested types)
-├── Wire/
-│   ├── <Domain>DTO.swift
-│   ├── <Domain>Mapper.swift           (protocol + implementation)
+├── Mapper/                            # DTO → Domain Model translation
+│   ├── <Domain>Mapping.swift          (protocol)
+│   ├── <Domain>Mapper.swift           (implementation)
 │   └── <Domain>MappingError.swift
-├── Network/
+├── Network/                           # API service + request descriptors
 │   ├── <Domain>Service.swift          (protocol)
 │   ├── Remote<Domain>Service.swift    (implementation)
 │   └── Get<Resource>Descriptor.swift
-├── Store/
+│   └── <Domain>DTO.swift             (wire DTO, lives alongside its service)
+├── Store/                             # In-memory state (AsyncStream actor)
 │   ├── <Domain>Store.swift            (protocol)
 │   └── InMemory<Domain>Store.swift    (actor implementation)
-├── Repository/
+├── Repository/                        # Orchestration: service → mapper → store
 │   ├── <Domain>Repository.swift       (protocol)
 │   └── Default<Domain>Repository.swift
+├── Container/                         # Scope-lived state holder (see ios-container skill)
+│   └── <Domain>Container.swift        (Sendable struct, Mutex-guarded mutable state)
 └── Tests/
     ├── <Domain>MapperTests.swift
     ├── Remote<Domain>ServiceTests.swift
@@ -120,6 +126,21 @@ Each reference file above contains a **Testing** section with layer-specific tes
         ├── <Domain>+Stub.swift
         └── <Domain>DTO+Stub.swift
 ```
+
+### Folder responsibilities
+
+| Folder | Holds | Key rule |
+|---|---|---|
+| `Model/` | Domain model structs | `Sendable + Hashable`; no UI, no DTOs |
+| `Mapper/` | Protocol + impl + error type | One file per type; never combine protocol + impl |
+| `Network/` | Protocol + impl + descriptors + DTO | Protocol and `Remote` impl in separate files |
+| `Store/` | Protocol + actor impl | Protocol and `InMemory` impl in separate files |
+| `Repository/` | Protocol + default impl | Protocol and `Default` impl in separate files |
+| `Container/` | Scope-lived state holder | Created on auth scope open; torn down with scope |
+
+> **Protocol/impl separation rule:** every protocol (`<Domain>Service`, `<Domain>Store`, etc.)
+> lives in its own file. Its default or Live implementation lives in a second, separate file.
+> Never put a protocol and its conforming type in the same file.
 
 ## Guidelines
 

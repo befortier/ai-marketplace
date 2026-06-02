@@ -29,8 +29,8 @@ MyFeature/
 ├── MyFeatureViewState.swift         # Immutable value types the view renders
 ├── MyFeatureNavigationRequest.swift # Enum of exit destinations
 └── Mapper/
-    ├── MyFeatureViewStateMapper.swift        # Protocol
-    └── DefaultMyFeatureViewStateMapper.swift # Implementation
+    ├── MyFeatureViewStateMapping.swift       # Protocol (separate file)
+    └── DefaultMyFeatureViewStateMapper.swift # Implementation (separate file)
 ```
 
 ## Step 1: Define the ViewState
@@ -155,6 +155,40 @@ Views/
     ├── FooterViewState.swift
     └── FooterAction.swift
 ```
+
+## Full Feature Folder Layout
+
+A feature or screen has a top-level folder for its root-level types plus one subfolder
+per subview. The Mapper protocol and its implementation are always **separate files**.
+
+```
+MyFeature/
+├── MyFeatureView.swift                         # Root SwiftUI view
+├── MyFeatureViewModel.swift                    # Owns state; handles actions
+├── MyFeatureViewState.swift                    # Immutable value type rendered by the view
+├── MyFeatureNavigationRequest.swift            # Enum of exit destinations
+├── Mapper/
+│   ├── MyFeatureViewStateMapping.swift         # Protocol
+│   └── DefaultMyFeatureViewStateMapper.swift   # Implementation (separate file)
+└── Views/                                      # One subfolder per subview (2+ files)
+    ├── Header/
+    │   ├── HeaderView.swift
+    │   ├── HeaderViewState.swift
+    │   └── HeaderAction.swift
+    ├── Content/
+    │   ├── MyFeatureContentView.swift
+    │   ├── MyFeatureContentViewState.swift
+    │   └── MyFeatureContentViewEvent.swift
+    └── Footer/
+        ├── FooterView.swift
+        ├── FooterViewState.swift
+        └── FooterAction.swift
+```
+
+**Rules:**
+- Create a `Views/` subfolder only when a subview has 2+ files. A single-file helper stays at the parent level.
+- The Mapper protocol (`...Mapping`) and its default implementation (`Default...Mapper`) are always separate files — never combined.
+- `NavigationRequest` is its own file even when small — it is the public contract between the feature and the composer.
 
 ## Guidelines
 
