@@ -40,6 +40,42 @@ Open the reference for what you're doing:
   [references/package-new-package.md](references/package-new-package.md)
 - **Maintaining the app target's `Package.swift` dependencies** →
   [references/package-app-dependencies.md](references/package-app-dependencies.md)
+- **Scaffolding the per-package / per-target `CLAUDE.md` files (the content model + scripts)** →
+  [references/claude-md-scaffolding.md](references/claude-md-scaffolding.md)
+
+## CLAUDE.md scaffolding
+
+A package and each of its targets carry a thin `CLAUDE.md` so an agent editing that folder
+sees the rules for *that tier* without loading the whole skill. The skill holds the *why*
+and the judgment; each `CLAUDE.md` holds *what/where* plus a one-line pointer back here.
+
+**Tiers are additive.** Ancestor `CLAUDE.md` files auto-load (the app-project
+`ios/CLAUDE.md`, then the package, then the target), so each tier carries **only its own
+delta** and defers everything else upward — no tier repeats what an ancestor already says.
+
+| Tier | `CLAUDE.md` location | Authored by |
+|---|---|---|
+| App project | `ios/CLAUDE.md` | **hand-maintained** |
+| App target | `Sources/<AppTarget>/CLAUDE.md` | **hand-maintained** |
+| Package | `<Package>/CLAUDE.md` | **scripted** (KIND: `domain` \| `infra`) |
+| Target | `<Package>/Sources/<Target>/CLAUDE.md` | **scripted** (ROLE: `data` \| `ui` \| `view` \| `live` \| `non-live`) |
+
+Run the scaffolders to write/patch the scripted tiers from the lean templates in
+[templates/](../../templates/). They are **idempotent** — re-running replaces only the
+managed block (between stable markers) and preserves any hand-written content around it.
+
+```bash
+# Package tier (KIND = domain | infra)
+plugins/swift-modularization/scripts/scaffold-package-claude-md.sh <kind> <package-dir>
+
+# Target tier (ROLE = data | ui | view | live | non-live)
+plugins/swift-modularization/scripts/scaffold-target-claude-md.sh <role> <package-dir> <target>
+```
+
+The app-project and app-target tiers are **not** scripted — they hold project-specific
+wiring that stays hand-maintained. See
+[references/claude-md-scaffolding.md](references/claude-md-scaffolding.md) for the content
+model and the best-practices rationale.
 
 ## Composition is a separate skill
 
