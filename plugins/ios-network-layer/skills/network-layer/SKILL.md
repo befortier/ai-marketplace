@@ -59,6 +59,17 @@ Key rules:
 - `DateFormat` — `.strategy` or `.custom` for per-call date decoding
 - `EmptyDecodable` — use for endpoints that return no body
 
+### Proto Endpoints (binary Protobuf responses)
+
+Read [references/proto-endpoints.md](references/proto-endpoints.md) for the full pattern.
+
+Key rules:
+- `WireMessage` protocol lives in `Networking` — **no SwiftProtobuf import** there
+- `fetch<T: WireMessage>(from:)` is a parallel method on `NetworkService`; call site chooses JSON vs proto
+- Sets `Accept: application/x-protobuf`; request body encoding is unchanged
+- Generated Swift types live in the `WireModels` package (`ios/Packages/WireModels`)
+- Map wire message → domain type at the repository edge; never expose generated types above it
+
 ## File Organization
 
 Two targets in one package. `Networking` (abstraction) has no dependency on `NetworkingLive`;
