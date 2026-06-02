@@ -7,8 +7,6 @@ Use a generic loading state enum for async data that drives view rendering. If y
 - [`LoadingState<Loading, Completed>`](#loadingstateloading-completed)
 - [`FailableLoadingState<Loading, Success, Failure>`](#failableloadingstateloading-success-failure)
 - [Which to Use](#which-to-use)
-- [Logging the Failure](#logging-the-failure)
-- [Common Mistakes](#common-mistakes)
 
 > **Reconcile, don't reinvent.** The canonical `LoadingState` and `FailableLoadingState` types ship from the `ios-create-loading-state` skill. This reference shows how a *view* renders them; that skill owns the type definitions, convenience initializers, and `map`/`flatMap` helpers. Cross-reference it rather than copying the enums.
 
@@ -116,17 +114,3 @@ The domain error is mapped to `ErrorViewState` in the Mapper layer (see [mapper.
 | Multiple independent async sections | Separate published properties per section |
 
 A screen that can fail to load — or whose primary action can fail — uses `FailableLoadingState` and renders the `.failure` case. Reaching for `LoadingState` on a network-backed screen and silently dropping errors is the mistake the fail state exists to prevent.
-
-## Logging the Failure
-
-Producing the `.failure` state is only half the job: when a load or action fails, the ViewModel **also logs the failure** so it's observable (consistent with the DEBUG recording / `LogStore` approach used elsewhere). The renderable `.failure` view state is for the user; the log entry is for the developer. See [view-model.md](view-model.md#logging-failed-attempts) for the pattern.
-
-## Common Mistakes
-
-**Rolling a custom loading enum per feature** — prefer the shared `LoadingState` / `FailableLoadingState` from `ios-create-loading-state` for consistency and to avoid reinventing error handling in every feature.
-
-**Storing domain model in loading state** — the loading state should wrap the *view state*, not the domain model. Map first, then wrap. This applies to the failure case too: wrap a renderable `ErrorViewState`, not a raw `Error`, when you want the failure to carry presentation data.
-
-**Treating `.failure` as un-renderable** — `.failure` is a real case the view must handle. Render a specific error view with a retry affordance; don't fall through to a blank or perpetual-loading screen.
-
-**Failing silently** — surfacing the error to the user without also logging it leaves failures invisible to developers. Always do both (see [view-model.md](view-model.md#logging-failed-attempts)).

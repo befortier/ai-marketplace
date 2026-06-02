@@ -75,13 +75,7 @@ Key rules:
 
 ## Step 5: Choose a Loading Strategy
 
-Read [references/loading-states.md](references/loading-states.md) for the full pattern.
-
-- If data loads once and the parent handles failure: wrap ViewState in `LoadingState`
-- If data can fail and retry: wrap in `FailableLoadingState` and **render the `.failure` case** as a real error view with retry
-- If the project has an existing loading state type, use that (the canonical `LoadingState` / `FailableLoadingState` ship from the `ios-create-loading-state` skill — don't reinvent them)
-
-When an attempt can fail, a failed load or action does two things: it drives the state to a renderable `.failure` (so the user sees a specific error with a retry affordance) **and** it logs the failure so it's observable to developers, consistent with the DEBUG recording / `LogStore` approach. See [references/view-model.md](references/view-model.md#logging-failed-attempts).
+Read [references/loading-states.md](references/loading-states.md) for the full pattern, including when to use `LoadingState` versus `FailableLoadingState`.
 
 ## Step 6: Build the Views
 
@@ -119,7 +113,7 @@ public struct MyFeatureView: View {
         case .failure(let errorViewState):
             ErrorView(
                 viewState: errorViewState,
-                onRetry: { Task { await viewModel.retry() } }
+                onEvent: { viewModel.handleErrorEvent($0) }
             )
         }
     }

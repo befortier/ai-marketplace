@@ -158,7 +158,6 @@
         "architecture",
         "packages",
         "dependency-injection",
-        "composition-root",
         "ios"
       ]
     },
@@ -264,7 +263,7 @@
     },
     {
       "name": "ios-container",
-      "description": "Defines the container pattern: a Sendable holder (no functions, mutable state behind a Mutex) that holds a domain's scope-lived in-memory state — an in-memory store/cache or a scope-duration subscription. A container holds the store; the store is the held state, not the container. Use when deciding whether to hold state in a container versus composing a stateless dependency on access.",
+      "description": "Defines the container pattern — a Sendable holder with no functions and mutable state behind a Mutex, holding a domain's scope-lived in-memory state (a store/cache or a live subscription). Use when creating a container, deciding where to hold in-memory state, or choosing between holding state versus composing a stateless dependency on access.",
       "version": "1.0.0",
       "source": "./plugins/ios-container",
       "author": {
@@ -283,7 +282,7 @@
     },
     {
       "name": "ios-composition",
-      "description": "Compose the dependency graph and infer the navigation tree in the main app (or an AppComposition package) from feature containers, app scopes, and local state — packages defer composition and navigation upward. Composition is wiring + navigation only: no logic, analytics, or network calls. Use when wiring a feature's dependencies into the app or deciding where the navigation graph lives.",
+      "description": "Compose the dependency graph and infer the navigation tree in the main app using stateless enum composers, from feature containers, app sessions, and local state — packages defer composition and navigation upward. Composition is wiring + navigation only: no logic, analytics, or network calls. Use when wiring a feature's dependencies into the app or deciding where the navigation tree lives.",
       "version": "1.0.0",
       "source": "./plugins/ios-composition",
       "author": {

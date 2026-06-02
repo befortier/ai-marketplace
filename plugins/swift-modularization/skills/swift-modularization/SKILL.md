@@ -21,8 +21,8 @@ area boundaries, same enforced dependency direction.
 
 ## One type per file
 
-A file holds **one primary type**. Name the file after it (`ChatContainer.swift` holds
-`ChatContainer`). Small, tightly-coupled companions of that type may share its file — a
+A file holds **one primary type**. Name the file after it (`ChatMessage.swift` holds
+`ChatMessage`). Small, tightly-coupled companions of that type may share its file — a
 private helper, a nested enum, the type's own `extension`s — but a second top-level type
 that stands on its own gets its own file. If a file accretes unrelated types, split it.
 This keeps types findable by filename and packages reviewable by directory.
@@ -36,15 +36,16 @@ Open the reference for what you're doing:
 - **Slicing a product domain into targets (Data / UI / per-experience) within one
   package, and the dependency direction between them** →
   [references/domain-clusters.md](references/domain-clusters.md)
-- **Wiring the object graph in the thin app target — the Composer pattern, the
-  session-gated key/lock root, stateless composers, and debug-vs-release composition** →
-  [references/composition-root.md](references/composition-root.md)
-- **Lifetime and state: signed-in / signed-out scopes and the containers (live socket
-  subscriptions, in-memory stores) they own** →
-  [references/scopes-and-containers.md](references/scopes-and-containers.md). The container
-  rules, decision guide, and worked example now live in the dedicated **`ios-container`**
-  skill; that reference just frames scopes and points to it.
 - **Authoring a package that exposes multiple targets/products** →
   [references/package-new-package.md](references/package-new-package.md)
 - **Maintaining the app target's `Package.swift` dependencies** →
   [references/package-app-dependencies.md](references/package-app-dependencies.md)
+
+## Composition is a separate skill
+
+This skill stops at the package boundary: each package exposes raw initializers and
+abstractions and does **not** wire itself. The app target is a thin composition root that
+pulls the `…Live` products and assembles the graph — but the rules for *how* to compose
+(stateless composers, session scopes, navigation inference) belong to the dedicated
+**`ios-composition`** skill, and the scope-lived state holders they assemble belong to the
+**`ios-container`** skill. Defer all composition and container specifics to those skills.

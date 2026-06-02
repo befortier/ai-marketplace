@@ -12,7 +12,6 @@
     "architecture",
     "packages",
     "dependency-injection",
-    "composition-root",
     "ios"
   ]
 }
