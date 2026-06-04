@@ -1,18 +1,11 @@
 # CLAUDE.md scaffolding
 
-How the per-package and per-target `CLAUDE.md` files are structured, why they stay lean,
-and how the scaffold scripts generate them.
+How the scaffold scripts generate per-package / per-target `CLAUDE.md` skeletons.
 
-## The split: skill vs CLAUDE.md
-
-| | Holds | Loads |
-|---|---|---|
-| **This skill** | the *why* and the judgment — when to split a package, dependency direction, rationale, plus the scripts and templates | on demand, when an agent is reasoning about modularization |
-| **CLAUDE.md** | the *what/where* for one folder — the hard rules for editing here — plus a one-line `See the swift-modularization skill (…)` pointer | **every session**, for any folder it sits in or above |
-
-Because a `CLAUDE.md` loads every session, it must be cheap. Domain knowledge, rationale,
-and examples belong in the skill; the `CLAUDE.md` carries only the rules that, if missing,
-would let an agent make a mistake in that folder.
+> The authoritative **content model** for a CLAUDE.md — what each per-type file should say, the
+> per-type conventions, and the "keep it lean, loads every session" best-practices — lives in the
+> **`ios-package-context`** skill. This reference covers only the *generation tooling* (templates +
+> scripts) and the additive-tier model; it does not restate those conventions.
 
 ## Additive, non-redundant tiers
 
@@ -74,17 +67,6 @@ Once a file is written, it is yours: edit it freely and the scaffolder won't tou
 
 ## Best-practices rationale
 
-These templates follow the CLAUDE.md guidance in
-<https://code.claude.com/docs/en/best-practices> ("Write an effective CLAUDE.md"):
-
-- **Keep it short — it loads every session.** Per line, ask *"would removing this cause a
-  mistake?"* If not, cut it. A bloated `CLAUDE.md` causes Claude to ignore the real rules.
-- **Exclude the inferable.** Anything Claude can read from the code, standard Swift
-  conventions, file-by-file descriptions, frequently-changing details, and long
-  explanations stay OUT — they go in the skill or nowhere.
-- **Additive ancestors.** Nested `CLAUDE.md` files auto-load up the tree, so tiers are
-  delta-only and never redundant.
-- **Domain knowledge → skills, not CLAUDE.md.** The rationale and judgment live here; the
-  `CLAUDE.md` keeps a pointer.
-- **`IMPORTANT`/`YOU MUST` sparingly.** One hard rule per template, reserved for the
-  constraint most likely to be violated.
+The "keep it lean / exclude the inferable / domain knowledge → skills / `IMPORTANT` sparingly"
+rationale (from <https://code.claude.com/docs/en/best-practices>) is owned by the
+**`ios-package-context`** skill — see it for the content-model conventions these templates follow.

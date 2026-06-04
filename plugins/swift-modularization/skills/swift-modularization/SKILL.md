@@ -40,8 +40,10 @@ Open the reference for what you're doing:
   [references/package-new-package.md](references/package-new-package.md)
 - **Maintaining the app target's `Package.swift` dependencies** →
   [references/package-app-dependencies.md](references/package-app-dependencies.md)
-- **Scaffolding the per-package / per-target `CLAUDE.md` files (the content model + scripts)** →
-  [references/claude-md-scaffolding.md](references/claude-md-scaffolding.md)
+- **What goes in a per-package / per-target `CLAUDE.md` — the content model, per-type
+  conventions, and best-practices** → the **`ios-package-context`** skill (authoritative).
+- **Generating the `CLAUDE.md` skeletons (scaffold scripts + templates + the additive-tier
+  model)** → [references/claude-md-scaffolding.md](references/claude-md-scaffolding.md)
 
 ## Composition is a separate skill
 
