@@ -1,0 +1,18 @@
+{
+  "name": "ios-package-context",
+  "description": "Authoring per-package and per-target CLAUDE.md files for a modularized iOS app — blurb plus file structure, naming, and non-obvious gotchas only, never implementation detail or intention. Use when writing or slimming a package or target CLAUDE.md.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "swiftpm",
+    "claude-md",
+    "documentation",
+    "package-context",
+    "modularization",
+    "conventions"
+  ]
+}
