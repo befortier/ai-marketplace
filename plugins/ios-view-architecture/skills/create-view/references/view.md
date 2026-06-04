@@ -205,14 +205,14 @@ FooterView(viewState: viewState.footer, onAction: ...)
 
 ## File Organization
 
-Mirror the view hierarchy in the directory structure. Co-locate each view with its action enum and viewstate:
+Mirror the view hierarchy in the directory structure. Co-locate each view with its action enum and ViewState. **One entity per file** — never pair two unrelated view states or views in the same file.
 
 ```
 MyFeature/
 ├── MyFeatureView.swift                    # Root composing view
 ├── MyFeatureViewModel.swift
 ├── MyFeatureViewState.swift               # Top-level state (may wrap content state)
-├── NavigationRequest.swift
+├── MyFeatureNavigationRequest.swift       # Omit for single-exit features
 ├── Mapper/
 │   ├── MyFeatureViewStateMapper.swift
 │   └── DefaultMyFeatureViewStateMapper.swift
@@ -229,12 +229,16 @@ MyFeature/
     │   ├── FooterView.swift
     │   ├── FooterViewState.swift
     │   └── FooterAction.swift
+    ├── Components/              # reusable sub-views shared across sections
+    │   └── AvatarView.swift
     └── Shared/
         ├── SkeletonView.swift
         └── ErrorView.swift
 ```
 
-For simple features with few views, a flat structure is fine — don't create folders for a single file.
+**Engine-style target (one VM, many phases):** the `Views/` subtree is more structured — the engine core goes in `Views/<EngineName>/`, controls go in `Views/Controls/<ControlName>/`, reusable atoms go in `Views/Components/`, and phase screens go in `Views/Phases/`. See [engine-variant.md](engine-variant.md) for the full layout.
+
+For simple features with few views, a flat structure is fine — don't create folders for a single file. `Runner/` is not a valid folder name for a view target.
 
 ## Rules
 

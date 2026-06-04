@@ -1,144 +1,65 @@
 ---
 name: create-view
-description: Scaffolds a new iOS SwiftUI feature following a consistent architecture — ViewModel, ViewState, Mapper, loading states, and navigation. Use when creating a new view, feature, or screen in a SwiftUI project.
+description: Scaffold a new iOS SwiftUI feature following a consistent architecture — ViewModel, ViewState, Mapper, loading states, and navigation. Use when creating a new view, feature, or screen in a SwiftUI project.
 ---
 
 # Create View
 
-Scaffold a new SwiftUI feature with a consistent architecture: ViewState, ViewModel, Mapper, loading states, and navigation exit pattern.
+Scaffold a new SwiftUI feature: ViewState, ViewModel, Mapper, loading states, and navigation exit.
 
 ## Quick Start
 
-When asked to create a new feature or view, gather these inputs:
+Gather these inputs, then generate:
 
 1. **Feature name** — e.g. `OrderDetail`, `ProfileSettings`
 2. **Data source** — What domain model drives this view? Does it load async?
 3. **Sections** — What distinct visual sections does the screen have?
-4. **Navigation exits** — Where can the user go from here?
+4. **Navigation exits** — Where can the user go? How many distinct destinations?
 
-Then generate the files following the architecture below.
+If the feature is a **multi-step flow driven by a single ViewModel** (not independent screens), read [references/engine-variant.md](references/engine-variant.md) first — it has a different shape.
 
 ## Architecture Overview
-
-Every feature follows this layered structure:
 
 ```
 MyFeature/
 ├── MyFeatureView.swift              # SwiftUI view (stateless, receives ViewState)
 ├── MyFeatureViewModel.swift         # Owns state, handles actions, orchestrates
 ├── MyFeatureViewState.swift         # Immutable value types the view renders
-├── MyFeatureNavigationRequest.swift # Enum of exit destinations
+├── MyFeatureNavigationRequest.swift # Multi-exit only; omit for single-exit
 └── Mapper/
-    ├── MyFeatureViewStateMapper.swift        # Protocol
-    └── DefaultMyFeatureViewStateMapper.swift # Implementation
+    ├── MyFeatureViewStateMapper.swift
+    └── DefaultMyFeatureViewStateMapper.swift
 ```
 
-## Step 1: Define the ViewState
+For sub-views, place them under `Views/` — see [File Structure](#file-structure).
 
-Read [references/view-state.md](references/view-state.md) for the full pattern.
+## Steps
 
-Key rules:
-- Struct conforming to `Sendable, Hashable`
-- Use `let` for data from outside, `var` only for view-owned transitions
-- Compose nested view states for complex screens
-- No domain types — only view-renderable values
+**1. ViewState** — Read [references/view-state.md](references/view-state.md). Key rules:
+- `Sendable, Hashable` (struct or enum)
+- `let` for data from outside; `var` only for view-owned transitions
+- No domain types; compose nested view states for complex screens
 
-## Step 2: Define the NavigationRequest
-
-Read [references/navigation-exit.md](references/navigation-exit.md) for the full pattern.
-
-Key rules:
-- Enum conforming to `Sendable, Hashable`
-- Names describe **destinations**, not events
+**2. Exit pattern** — Read [references/navigation-exit.md](references/navigation-exit.md). Key rules:
+- **Single exit**: bare `onFinished: @MainActor () -> Void` — no enum, no extra file
+- **Multiple exits**: `NavigationRequest` enum conforming to `Sendable, Hashable`
 - Feature never navigates itself
 
-## Step 3: Create the Mapper
+**3. Mapper** — Read [references/mapper.md](references/mapper.md). Protocol + default impl; `Sendable`; domain in, view state out; injected into ViewModel.
 
-Read [references/mapper.md](references/mapper.md) for the full pattern.
+**4. ViewModel** — Read [references/view-model.md](references/view-model.md). `@MainActor final class ObservableObject`; `@Published private(set)` state; dependencies as protocols; one action handler per view layer.
 
-Key rules:
-- Protocol + default implementation
-- Conforms to `Sendable`
-- Single responsibility: domain model in, view state out
-- Injected into ViewModel as a dependency
+**5. Loading strategy** — Read [references/loading-states.md](references/loading-states.md) for `LoadingState` vs `FailableLoadingState`.
 
-## Step 4: Create the ViewModel
+**6. Views** — Read [references/view.md](references/view.md). Key rules:
+- Only the root view holds `@StateObject`
+- Every child view is stateless: `(viewState:, onAction:)` — data in, actions out
+- Action enum per view layer; parents wrap child actions before routing to ViewModel
+- Bodies under 30 lines; extract sections as `@ViewBuilder` computed properties
 
-Read [references/view-model.md](references/view-model.md) for the full pattern.
+## File Structure
 
-Key rules:
-- `@MainActor final class` conforming to `ObservableObject`
-- `@Published private(set)` for all state
-- Dependencies injected as protocols
-- One action handler per view layer
-- State mutation via copy-modify-reassign
-
-## Step 5: Choose a Loading Strategy
-
-Read [references/loading-states.md](references/loading-states.md) for the full pattern, including when to use `LoadingState` versus `FailableLoadingState`.
-
-## Step 6: Build the Views
-
-Read [references/view.md](references/view.md) for the full pattern.
-
-This is the core of the feature. Key principles:
-
-1. **Only the root view holds `@StateObject`.** It owns the ViewModel, switches on loading state, and accepts `onFinished` for navigation exit.
-2. **Every child view is stateless.** It receives `(viewState:, onAction:)` — data in, actions out.
-3. **Define an action enum per view layer.** Parent views wrap child actions into their own enum so the ViewModel receives a single routable type.
-4. **Keep bodies small.** Extract logical sections into `@ViewBuilder` private computed properties. Aim for under 30 lines per body.
-5. **Each child gets only its slice.** Pass `viewState.header` to the header, not the whole screen state.
-
-### Root view structure
-
-```swift
-public struct MyFeatureView: View {
-    @StateObject private var viewModel: ViewModel
-    private let onFinished: @MainActor (NavigationRequest) -> Void
-
-    public var body: some View {
-        content
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch viewModel.viewState {
-        case .loading:
-            SkeletonView()
-        case .success(let viewState):
-            MyFeatureContentView(
-                viewState: viewState.content,
-                onEvent: { viewModel.handleContentViewEvent($0) }
-            )
-        case .failure(let errorViewState):
-            ErrorView(
-                viewState: errorViewState,
-                onEvent: { viewModel.handleErrorEvent($0) }
-            )
-        }
-    }
-}
-```
-
-This example uses `FailableLoadingState` (`.loading` / `.success` / `.failure`). The `.failure` case is a real, renderable state — an `ErrorView` with a retry affordance — not a fall-through. If the feature genuinely can't fail (parent handles failure), use `LoadingState` with just `.loading` / `.completed`. See [references/loading-states.md](references/loading-states.md).
-
-### Child view structure
-
-```swift
-struct HeaderView: View {
-    let viewState: HeaderViewState
-    let onAction: @MainActor (HeaderAction) -> Void
-
-    var body: some View {
-        HStack {
-            Text(viewState.title)
-            Button("Close") { onAction(.closeTapped) }
-        }
-    }
-}
-```
-
-### File organization for views
+One entity per file. Co-locate each view's ViewState and Action/Event enum in the same folder.
 
 ```
 Views/
@@ -150,16 +71,23 @@ Views/
 │   ├── HeaderView.swift
 │   ├── HeaderViewState.swift
 │   └── HeaderAction.swift
-└── Footer/
-    ├── FooterView.swift
-    ├── FooterViewState.swift
-    └── FooterAction.swift
+├── Components/          # reusable sub-views shared across sections
+└── Shared/
+    ├── SkeletonView.swift
+    └── ErrorView.swift
 ```
+
+For an engine-style view target (one VM, many phases) the layout is more structured — see [references/engine-variant.md](references/engine-variant.md) for `Views/<Engine>/`, `Controls/<Name>/`, `Components/`, `Phases/`.
+
+**Rules:**
+- One entity per file — never pair two unrelated view states in one file
+- Folder only when a section has 2+ files
+- `Runner/` is **not** a valid folder name for a view target
 
 ## Guidelines
 
-- **Scan the project first.** Before generating, look at existing features to match naming conventions, file organization, and any project-specific patterns (e.g. existing `LoadingState` types, navigation infrastructure, Composer patterns).
-- **Don't over-generate.** If the feature is simple (no async loading, no navigation exits), skip the layers that aren't needed. A static info view doesn't need a Mapper.
-- **Actions bubble up, state flows down.** Views never mutate state directly. They send actions to the ViewModel, which updates ViewState.
-- **Each sub-view gets only its slice.** Don't pass the entire screen state to a child component.
-- **Flat structure for simple features.** Don't create subfolders for a single view — use folders when a section has 2+ files.
+- **Scan the project first.** Match existing naming conventions and patterns before generating.
+- **Don't over-generate.** A static info view doesn't need a Mapper or NavigationRequest.
+- **Actions bubble up, state flows down.** Views never mutate state directly.
+- **Each sub-view gets only its slice.** Don't pass the full screen state to a child.
+- **Single exit = bare closure.** Only introduce `NavigationRequest` for multiple distinct destinations.

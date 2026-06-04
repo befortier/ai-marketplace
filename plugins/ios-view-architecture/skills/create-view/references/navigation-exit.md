@@ -2,6 +2,23 @@
 
 Features never navigate themselves. Navigation intent is bubbled outward via a closure and caught at the composition layer where the next screen can be composed and presented.
 
+## Single Exit vs. Multiple Exits
+
+**Single exit** — the feature has exactly one way out (e.g. "done", "close"). Use a bare `onFinished: @MainActor () -> Void` closure. No enum, no extra file.
+
+```swift
+// ViewModel
+private let onFinished: @MainActor () -> Void
+
+func closeTapped() {
+    onFinished()
+}
+```
+
+**Multiple exits** — the feature can route the host to different destinations (e.g. `.finished` vs `.cartDetails(cartID:)`). Define a `NavigationRequest` enum (see below) so the composition layer can switch exhaustively over the possibilities.
+
+The rule: introduce `NavigationRequest` only when there are genuinely multiple exit destinations. Don't wrap a single `.finished` case in an enum.
+
 ## NavigationRequest Enum
 
 Define exit destinations as a `Sendable, Hashable` enum. Names describe **where to go**, not what happened — this distinguishes them from actions:
