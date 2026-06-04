@@ -63,33 +63,6 @@ public init(
 
 The ViewModel orchestrates; it doesn't implement. Business logic belongs in use cases, mapping belongs in mappers, tracking belongs in recorders.
 
-## Injecting the ViewModel into its View
-
-The view owns its ViewModel as its single `@StateObject`. When a Composer builds the ViewModel, inject it as an **`@autoclosure @escaping @MainActor`** so the view constructs it *inside* `@StateObject(wrappedValue:)` — evaluated **once per view identity** — rather than receiving a pre-built instance.
-
-```swift
-struct MyFeatureView: View {
-    @StateObject private var viewModel: ViewModel
-
-    // ✅ Deferred: the composer writes `MyFeatureView(viewModel: ViewModel(...))`,
-    // but the ViewModel is built lazily, once, when @StateObject first initializes.
-    init(viewModel: @autoclosure @escaping @MainActor () -> ViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel())
-    }
-}
-```
-
-```swift
-// ❌ Anti-pattern: handing @StateObject a pre-built ObservableObject.
-init(viewModel: ViewModel) {
-    _viewModel = StateObject(wrappedValue: viewModel)   // re-established on churn
-}
-```
-
-**Why this matters.** A Composer's `make(...)` is re-evaluated on **every parent `body` pass** — and a `TabView` evaluates *all* its tab contents eagerly on each render, not just the selected one. If `make()` eagerly builds the `ObservableObject` and the view passes that pre-built instance to `@StateObject(wrappedValue:)`, SwiftUI re-establishes the state object whenever it re-creates the view's storage. That re-fires the view's `.task`/`onAppear` and any init-time stream observation **on a loop** — symptom: a blank screen that won't settle (and, inside a `TabView`, the selection bouncing back to the first tab). The `@autoclosure` defers construction so the Composer keeps owning *what* to build while SwiftUI controls *when* — exactly once. `@MainActor` is required because the ViewModel is main-actor isolated.
-
-> This is the supported SwiftUI contract: `@StateObject` is meant to **create** its object from the autoclosure, never to adopt an externally-owned instance. Passing a value-type dependency (a service/use case) that the view turns into a ViewModel is equivalent and equally safe.
-
 ## Action Handling
 
 One handler per view layer — mirrors the action bubbling hierarchy:
@@ -202,4 +175,3 @@ See [navigation-exit.md](navigation-exit.md) for the full navigation pattern.
 | Cancel task in `deinit` | Stops observation when ViewModel is deallocated |
 | Dependencies are `let` | Immutable after init |
 | `final class` | Not designed for subclassing |
-| Inject the VM as `@autoclosure @escaping @MainActor () -> ViewModel` | Built once per view identity inside `@StateObject`; a pre-built instance re-inits (and re-fires `.task`) when a composer is re-evaluated in a parent `body` (e.g. eager `TabView` tabs) |

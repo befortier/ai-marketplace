@@ -109,6 +109,8 @@ The root view is the only view that holds a `@StateObject` ViewModel. It is resp
 3. Wiring child `onAction`/`onEvent` closures to the ViewModel
 4. Accepting an `onFinished` closure for navigation exit
 
+The ViewModel **must** be injected as an `@autoclosure` — `viewModel: @autoclosure @escaping () -> ViewModel`.
+
 ```swift
 public struct MyFeatureView: View {
     @StateObject private var viewModel: ViewModel
