@@ -1,0 +1,21 @@
+{
+  "name": "handoff",
+  "description": "Compacts the current conversation into a handoff document so a fresh agent can continue the work — saved to the OS temp dir, with a suggested-skills section, and referencing existing artifacts by path instead of duplicating them. Use when ending a session or transferring work to another agent. Vendored from mattpocock/skills (MIT).",
+  "version": "1.0.0",
+  "source": "./plugins/handoff",
+  "author": {
+    "name": "Matt Pocock"
+  },
+  "repository": "https://github.com/mattpocock/skills",
+  "license": "MIT",
+  "keywords": [
+    "handoff",
+    "session",
+    "context",
+    "compaction",
+    "continuation",
+    "agent",
+    "productivity",
+    "documentation"
+  ]
+}

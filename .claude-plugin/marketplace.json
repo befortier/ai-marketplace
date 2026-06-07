@@ -337,6 +337,55 @@
         "composition",
         "approval-gated"
       ]
+    },
+    {
+      "name": "core-data-expert",
+      "description": "Expert Core Data guidance — stack setup, fetch optimization, threading with NSManagedObjectID, Swift Concurrency, batch operations, persistent history, schema migration, performance, and NSPersistentCloudKitContainer integration. Use when building or debugging a Core Data stack on iOS/macOS. Vendored from AvdLee/Core-Data-Agent-Skill (MIT).",
+      "version": "1.0.0",
+      "source": "./plugins/core-data-expert",
+      "author": {
+        "name": "Antoine van der Lee"
+      },
+      "repository": "https://github.com/AvdLee/Core-Data-Agent-Skill",
+      "license": "MIT",
+      "keywords": [
+        "core-data",
+        "coredata",
+        "persistence",
+        "database",
+        "sqlite",
+        "cloudkit",
+        "nspersistentcontainer",
+        "nsmanagedobject",
+        "fetch-requests",
+        "threading",
+        "migration",
+        "ios",
+        "macos",
+        "swift",
+        "apple"
+      ]
+    },
+    {
+      "name": "handoff",
+      "description": "Compacts the current conversation into a handoff document so a fresh agent can continue the work — saved to the OS temp dir, with a suggested-skills section, and referencing existing artifacts by path instead of duplicating them. Use when ending a session or transferring work to another agent. Vendored from mattpocock/skills (MIT).",
+      "version": "1.0.0",
+      "source": "./plugins/handoff",
+      "author": {
+        "name": "Matt Pocock"
+      },
+      "repository": "https://github.com/mattpocock/skills",
+      "license": "MIT",
+      "keywords": [
+        "handoff",
+        "session",
+        "context",
+        "compaction",
+        "continuation",
+        "agent",
+        "productivity",
+        "documentation"
+      ]
     }
   ]
 }
