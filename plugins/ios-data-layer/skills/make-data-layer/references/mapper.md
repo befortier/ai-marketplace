@@ -91,8 +91,9 @@ Note: enum mapping functions return `nil` for unrecognized values. The call site
 ## Where It Lives
 
 ```
+DTO/
+└── <Domain>DTO.swift        (one file per type — see dto.md)
 Wire/
-├── <Domain>DTO.swift
 ├── <Domain>Mapper.swift
 └── <Domain>MappingError.swift
 ```

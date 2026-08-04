@@ -30,11 +30,13 @@ public struct RewardDTO: Decodable, Sendable, Hashable {
 ## Where It Lives
 
 ```
-Wire/
-└── <Domain>DTO.swift
+DTO/
+├── PointPassLandingDTO.swift
+├── ProgressDTO.swift
+└── RewardDTO.swift
 ```
 
-Group nested DTOs in the same file when they're small. Split to separate files when a nested DTO exceeds ~30 lines.
+One file per type — nested DTOs get their own files, never grouped into a shared one.
 
 ## CodingKeys
 
@@ -66,6 +68,7 @@ public struct OfferDetailDTO: Decodable, Sendable, Hashable {
 | All properties `let` | DTOs are immutable snapshots |
 | Optional for nullable API fields | Matches API contract exactly |
 | `Sendable + Hashable` | Concurrency-safe, usable as dictionary keys |
+| One file per type in `DTO/` | Types stay findable; diffs stay per-type |
 
 ## Testing
 

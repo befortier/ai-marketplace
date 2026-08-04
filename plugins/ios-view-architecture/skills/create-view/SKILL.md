@@ -25,7 +25,7 @@ MyFeature/
 ├── MyFeatureView.swift              # SwiftUI view (stateless, receives ViewState)
 ├── MyFeatureViewModel.swift         # Owns state, handles actions, orchestrates
 ├── MyFeatureViewState.swift         # Immutable value types the view renders
-├── MyFeatureNavigationRequest.swift # Multi-exit only; omit for single-exit
+├── MyFeatureNavigationDestination.swift # Multi-destination only; omit for single-exit
 └── Mapper/
     ├── MyFeatureViewStateMapper.swift
     └── DefaultMyFeatureViewStateMapper.swift
@@ -41,13 +41,13 @@ For sub-views, place them under `Views/` — see [File Structure](#file-structur
 - No domain types; compose nested view states for complex screens
 
 **2. Exit pattern** — Read [references/navigation-exit.md](references/navigation-exit.md). Key rules:
-- **Single exit**: bare `onFinished: @MainActor () -> Void` — no enum, no extra file
-- **Multiple exits**: `NavigationRequest` enum conforming to `Sendable, Hashable`
+- One injected async closure: `onAction: (MyFeatureAction) async -> Void` — non-throwing, awaited from handlers
+- No published navigation state; navigation payloads are a `NavigationDestination` enum (`Sendable, Hashable`)
 - Feature never navigates itself
 
 **3. Mapper** — Read [references/mapper.md](references/mapper.md). Protocol + default impl; `Sendable`; domain in, view state out; injected into ViewModel.
 
-**4. ViewModel** — Read [references/view-model.md](references/view-model.md). `@MainActor final class ObservableObject`; `@Published private(set)` state; dependencies as protocols; one action handler per view layer.
+**4. ViewModel** — Read [references/view-model.md](references/view-model.md). `@MainActor final class ObservableObject`; `@Published private(set) viewState` is the **only** stored state; dependencies as protocols; async handlers, one per view layer — the view owns task lifetimes.
 
 **5. Loading strategy** — Read [references/loading-states.md](references/loading-states.md) for `LoadingState` vs `FailableLoadingState`.
 
@@ -87,7 +87,7 @@ For an engine-style view target (one VM, many phases) the layout is more structu
 ## Guidelines
 
 - **Scan the project first.** Match existing naming conventions and patterns before generating.
-- **Don't over-generate.** A static info view doesn't need a Mapper or NavigationRequest.
+- **Don't over-generate.** A static info view doesn't need a Mapper or NavigationDestination.
 - **Actions bubble up, state flows down.** Views never mutate state directly.
 - **Each sub-view gets only its slice.** Don't pass the full screen state to a child.
-- **Single exit = bare closure.** Only introduce `NavigationRequest` for multiple distinct destinations.
+- **Single exit = payload-free closure.** Only introduce `NavigationDestination` for multiple distinct destinations.

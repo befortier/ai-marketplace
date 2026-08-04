@@ -63,6 +63,35 @@ public actor InMemoryPointPassStore: PointPassStore {
 }
 ```
 
+## Fallible Stores Throw
+
+A store whose backing can fail to open (a database, a file) throws from its accessors — never swallow an open error into an empty stream:
+
+```swift
+// Don't — an open failure becomes silence
+func activeItemsStream() async -> AsyncStream<[Item]> {
+    guard let realm = try? openRealm() else {
+        return AsyncStream { $0.finish() }
+    }
+    ...
+}
+
+// Do — the getter throws; the caller renders failure
+func activeItemsStream() async throws -> AsyncStream<[Item]>
+```
+
+## Persistent Store Rules
+
+- **Actor-isolated end to end.** No `nonisolated` mutation paths, no implicitly-unwrapped snapshots captured outside the actor.
+- **Mutations report whether they transitioned.** A mutation that may be a no-op returns whether it actually changed state, so callers can act exactly once on a real transition:
+
+```swift
+@discardableResult
+func markSeen(_ ids: Set<Item.ID>) async throws -> Bool   // true iff something changed
+```
+
+- **Record ↔ model conversion lives in a two-way mapper** — see [record-mapping.md](record-mapping.md).
+
 ## Package Dependency
 
 Add `swift-async-algorithms` to `Package.swift` when using this store pattern. It provides `combineLatest` and `chain` for ViewModels that observe multiple streams.
@@ -100,6 +129,8 @@ Store/
 | `replayCurrentValue` parameter | Lets new subscribers get current state immediately |
 | Clean up continuations on termination + deinit | Prevents memory leaks |
 | `AnyObject` on protocol | Allows `weak self` capture in continuations |
+| Throw from accessors when opening can fail | An empty stream hides real failures |
+| Mutations return whether they transitioned | Callers act exactly once on real changes |
 
 ## Testing
 

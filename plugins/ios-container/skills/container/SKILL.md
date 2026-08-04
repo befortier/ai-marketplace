@@ -97,7 +97,7 @@ import Synchronization
 /// so it is composed on access in the app, never stored here.
 public final class FeatureContainer: Sendable {
     /// The in-memory state this container exists to hold.
-    public let store: SomeStore
+    public let store: any SomeStore
 
     /// Mutable state shared across concurrency domains, behind a real `Mutex`
     /// (Swift `Synchronization`). The bootstrap use case writes the task here;
@@ -105,7 +105,7 @@ public final class FeatureContainer: Sendable {
     public let subscription = Mutex<Task<Void, Never>?>(nil)
 
     /// `init` only stores the dependency passed in — no composition, no work.
-    public init(store: SomeStore) {
+    public init(store: any SomeStore) {
         self.store = store
     }
 }
@@ -120,14 +120,19 @@ that can be exercised on its own:
 /// so the container stays a plain holder and this logic is testable in isolation.
 struct BootstrapFeatureContainerUseCase {
     func callAsFunction(container: FeatureContainer) {
-        container.subscription.withLock {
-            $0 = Task {
+        container.subscription.withLock { task in
+            guard task == nil else { return }   // idempotent — a second call is a no-op
+            task = Task {
                 // observe a websocket / repository stream and feed the store
             }
         }
     }
 }
 ```
+
+The bootstrap use case **is** the subscription's lifetime owner — no separate starter or
+observation types. The first authenticated surface invokes it once; the store-only-if-nil
+guard makes a stray second call harmless.
 
 Notes tying this back to the rules:
 
@@ -141,6 +146,8 @@ Notes tying this back to the rules:
   guards the only mutable state.
 - **Mutex (rule 6):** the mutable `subscription` lives behind a real `Mutex` from
   `Synchronization`, written by the bootstrap use case and the scope's teardown.
+- **Protocol-typed state is explicit:** held protocol state is declared `any SomeStore`,
+  never a bare protocol name.
 
 > Note on isolation: a `Sendable` scope-lived state holder can be an `@Observable` class,
 > an `actor`, or a `Mutex`-protected type — all three are valid kinds. The container rule is
@@ -153,6 +160,14 @@ The container type lives **in the feature package** (named like `FeatureContaine
 instantiated in the main app, its state is held by the main app, and it is bootstrapped in
 the main app (by calling the bootstrap use case). The main app owns the container for the
 duration of the scope and tears it down — cancelling the subscription — when the scope ends.
+
+## Containers always exist
+
+Create the container unconditionally when its scope starts. Never wrap it in an
+availability layer — no `isInitialized` flags, no membership checks deciding whether the
+container gets created, no optional container on the scope. A container is just held state
+and is cheap to hold; whether the *feature* is shown is a rendering decision, not the
+container's concern.
 
 ## Cross-links
 

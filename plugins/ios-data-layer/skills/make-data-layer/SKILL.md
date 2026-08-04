@@ -28,6 +28,7 @@ Key rules:
 - `Decodable + Sendable + Hashable` struct
 - **No enums** — use `String` for type fields; convert in mapper
 - Flat structure matching API response shape
+- `DTO/` folder — one file per type
 - Naming: `<Domain>DTO`, `<Domain>ResponseDTO`
 
 ## Step 2: Define the Domain Model
@@ -69,6 +70,8 @@ Key rules:
 - Actor-based with `AsyncStream` continuations
 - Stores domain models, not DTOs
 - Operations: `upsert`, `stream`, `removeAll`
+- Fallible (persistent) stores throw from stream getters — never swallow open errors
+- Record ↔ model conversion for persistent stores: read [references/record-mapping.md](references/record-mapping.md)
 
 ## Step 6: Create the Repository
 
@@ -88,6 +91,7 @@ Each reference file above contains a **Testing** section with layer-specific tes
 - Mapper: transformation + fallback + terminal error tests (see mapper.md)
 - Service: descriptor + client call verification (see network-service.md)
 - Store: stream emission + replay tests (see store.md)
+- Record mapping: round-trip + unknown-kind tests (see record-mapping.md)
 - Repository: orchestration + error propagation tests (see repository.md)
 
 ## File Organization
@@ -97,8 +101,10 @@ Each reference file above contains a **Testing** section with layer-specific tes
 ├── Models/
 │   ├── <Domain>.swift
 │   └── <Domain>+<SubType>.swift      (extensions for nested types)
+├── DTO/
+│   ├── <Domain>DTO.swift              (one file per type)
+│   └── <Nested>DTO.swift
 ├── Wire/
-│   ├── <Domain>DTO.swift
 │   ├── <Domain>Mapper.swift           (protocol + implementation)
 │   └── <Domain>MappingError.swift
 ├── Network/
@@ -127,3 +133,4 @@ Each reference file above contains a **Testing** section with layer-specific tes
 - **Don't over-generate.** If the feature only reads data (no persistence), skip the store and have the repository return directly.
 - **One service per domain.** Don't add methods to unrelated services.
 - **Protocols for everything testable.** Every dependency gets a `@Mocked` protocol.
+- **Docs are one or two lines.** Doc comments state intent — no narration, no restating the signature.

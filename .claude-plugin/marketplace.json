@@ -27,7 +27,7 @@
     {
       "name": "ios-view-architecture",
       "description": "iOS SwiftUI view architecture patterns including ViewState, ViewModel, Mapper, loading states, and navigation. Use when building new features or views in a SwiftUI project.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-view-architecture",
       "author": {
         "name": "befortier"
@@ -104,7 +104,7 @@
     {
       "name": "ios-data-layer",
       "description": "iOS data layer patterns — DTO, domain model, mapper, repository, network service, and AsyncStream store. Use when building or scaffolding a data layer for an iOS feature.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-data-layer",
       "author": {
         "name": "befortier"
@@ -247,7 +247,7 @@
     {
       "name": "ios-join-async-stream",
       "description": "Combine multiple AsyncStream sources into a single mapped output stream using the combineLatest pattern. Use when joining repository/store streams or merging async sources in Swift.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-join-async-stream",
       "author": {
         "name": "befortier"
@@ -265,7 +265,7 @@
     {
       "name": "ios-use-case",
       "description": "Encapsulate business logic as a Sendable struct conforming to a protocol and invoked via callAsFunction(), with the DefaultXxxUseCase naming convention. Use when creating or injecting a use case in Swift.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-use-case",
       "author": {
         "name": "befortier"
@@ -283,7 +283,7 @@
     {
       "name": "ios-container",
       "description": "Defines the container pattern — a Sendable holder with no functions and mutable state behind a Mutex, holding a domain's scope-lived in-memory state (a store/cache or a live subscription). Use when creating a container, deciding where to hold in-memory state, or choosing between holding state versus composing a stateless dependency on access.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-container",
       "author": {
         "name": "befortier"
@@ -302,7 +302,7 @@
     {
       "name": "ios-composition",
       "description": "Compose the dependency graph and infer the navigation tree in the main app using stateless enum composers, from feature containers, app sessions, and local state — packages defer composition and navigation upward. Composition is wiring + navigation only: no logic, analytics, or network calls. Use when wiring a feature's dependencies into the app or deciding where the navigation tree lives.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/ios-composition",
       "author": {
         "name": "befortier"

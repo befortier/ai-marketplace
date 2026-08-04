@@ -13,6 +13,24 @@ Combine multiple `AsyncStream` sources into a single mapped output stream using 
 - Mapping or enriching models by combining streams of related data
 - Producing a reactive stream that updates whenever either source emits a new value
 
+**When not to use:** to correlate two sources whose producers you own — first check the write order (see [Don't Join What You Can Order](#dont-join-what-you-can-order)).
+
+## Where Joins Live
+
+Joins live in a **use case** (`Get<Thing>StreamUseCase` — a `callAsFunction()` that returns the joined, mapped output stream), never in a ViewModel. The ViewModel consumes exactly one stream and maps each emission to view state; when it needs data from two sources, the use case joins them first:
+
+```swift
+protocol GetMappedModelsStreamUseCase: Sendable {
+    func callAsFunction() async throws -> AsyncStream<[MappedModel]>
+}
+```
+
+The `Default` implementation injects both repositories/stores and applies the pattern below.
+
+## Don't Join What You Can Order
+
+Before joining (or polling) to correlate a signal stream with the record it announces, check the producers. If the signal is emitted before the record is written, fix the write order at the producer — record first, then signal — and the join collapses to a single read on the signal. A poll/sleep/deadline loop in a consumer waiting for the second source to catch up is the smell that the producers' write order is wrong; fix it there, not in the join.
+
 ## Pattern
 
 ```swift
@@ -49,6 +67,24 @@ return stream
 ## Replay Behavior
 
 When calling `.stream(replayCurrentValue: true)` on a source, the stream immediately emits the current cached value. This ensures the combined stream produces an initial value without waiting for a live update. Use this on sources where the current state matters at subscription time (e.g., a repository with cached data).
+
+## Initial Values with `chain`
+
+`combineLatest` waits for every source to emit once. When a source has no replay and may not have emitted yet, prepend an initial value with `chain` so the join starts immediately:
+
+```swift
+for await (item, liked) in combineLatest(
+    itemStream,
+    chain(
+        AsyncStream { $0.yield(LikedState(isLiked: false)); $0.finish() },
+        likedStream
+    )
+) {
+    // liked is the initial value until the real stream emits
+}
+```
+
+> `combineLatest` and `chain` come from `swift-async-algorithms`. Add it to `Package.swift` if not already present.
 
 ## Checklist
 

@@ -1,96 +1,74 @@
 # Navigation & Exit Pattern
 
-Features never navigate themselves. Navigation intent is bubbled outward via a closure and caught at the composition layer where the next screen can be composed and presented.
+Features never navigate themselves. Exit intent leaves the feature through a single injected async closure on the ViewModel; the app decides what happens next.
 
-## Single Exit vs. Multiple Exits
+## The Exit Closure
 
-**Single exit** — the feature has exactly one way out (e.g. "done", "close"). Use a bare `onFinished: @MainActor () -> Void` closure. No enum, no extra file.
+The ViewModel takes `onAction: (MyFeatureAction) async -> Void` at init and awaits it from its handlers:
 
 ```swift
 // ViewModel
-private let onFinished: @MainActor () -> Void
+private let onAction: (MyFeatureAction) async -> Void
 
-func closeTapped() {
-    onFinished()
+func onRowTapped(_ row: RowViewState) async {
+    await onAction(.open(.detail(id: row.id)))
 }
 ```
 
-**Multiple exits** — the feature can route the host to different destinations (e.g. `.finished` vs `.cartDetails(cartID:)`). Define a `NavigationRequest` enum (see below) so the composition layer can switch exhaustively over the possibilities.
+| Property | Why |
+|----------|-----|
+| `async` | The ViewModel can await completion of the action before returning |
+| Non-throwing | Not every action can fail, and failure policy doesn't belong to the feature — the app-side handler owns it |
+| One closure | Every exit goes through `onAction` — no per-destination closures, no published requests |
 
-The rule: introduce `NavigationRequest` only when there are genuinely multiple exit destinations. Don't wrap a single `.finished` case in an enum.
+**Single exit** — a feature with exactly one way out uses a payload-free `onAction: () async -> Void`. No enum, no extra file.
 
-## NavigationRequest Enum
+## NavigationDestination Enum
 
-Define exit destinations as a `Sendable, Hashable` enum. Names describe **where to go**, not what happened — this distinguishes them from actions:
+Navigation payloads are a `Sendable, Hashable` enum. Names describe **where to go**, not what happened:
 
 ```swift
-// NavigationRequest — destination-oriented
-public enum MyFeatureNavigationRequest: Sendable, Hashable {
+// Exit action — what the app should do
+public enum MyFeatureAction: Sendable, Hashable {
+    case open(MyFeatureNavigationDestination)
+    case dismissed
+}
+
+// NavigationDestination — destination-oriented
+public enum MyFeatureNavigationDestination: Sendable, Hashable {
     case settings
     case detail(id: String)
     case support
 }
 
-// contrast with Action — event-oriented
-enum Action {
+// contrast with a view Action — event-oriented
+enum HeaderAction {
     case primaryButtonTapped
     case closeTapped
 }
 ```
 
-## Bubbling Navigation Out
+## Handling in the App
 
-Navigation must not be coupled to the view or component. It is bubbled out via a closure on the ViewModel.
-
-```swift
-// ViewModel
-private let onFinished: @MainActor (MyFeatureNavigationRequest) -> Void
-
-func closeTapped() {
-    onFinished(.support)
-}
-```
-
-For cases where the host needs to be accessed for navigation — e.g. pushing onto a navigation stack or accessing a presenting controller — the ViewModel publishes the request and the top-level view observes and relays it through its own `onFinished` closure:
+The composer wires `onAction` to a `DefaultNavigationHandler` — a small type in the main app, next to the composition, that switches exhaustively over the navigation enum and performs the push/present/dismiss (and any failure toast) itself. The feature has no knowledge of what happens next. See the `ios-composition` skill for the handler shape.
 
 ```swift
-// ViewModel
-@Published private(set) var pendingNavigation: MyFeatureNavigationRequest?
-
-func closeTapped() {
-    pendingNavigation = .support
-}
-
-// Top-level view
-.onChange(of: viewModel.pendingNavigation) { request in
-    guard let request else { return }
-    viewModel.pendingNavigation = nil
-    onFinished(request)
-}
-```
-
-## Handling at the Composition Layer
-
-Navigation requests bubble up to the composition layer where further screens are composed and navigated to. The feature has no knowledge of what happens next.
-
-```swift
-MyFeatureView(onFinished: { request in
-    switch request {
-    case .settings:
-        navigator.push(SettingsComposer.make(...))
-    case .detail(let id):
-        navigator.push(DetailComposer.make(id: id, ...))
-    case .support:
-        navigator.present(SupportComposer.make(...))
-    }
-})
+// Composition layer
+let handler = DefaultNavigationHandler(...)
+let viewModel = MyFeatureView.ViewModel(
+    ...,
+    onAction: { await handler.handle($0) }
+)
 ```
 
 ## Rules
 
 | Rule | Why |
 |------|-----|
-| `NavigationRequest` conforms to `Sendable, Hashable` | May cross actor boundaries; enables use in collections |
+| Exit closure is `onAction: (Action) async -> Void` | One awaited path out; the feature can render a pending state |
+| Non-throwing closure | Failure policy lives in the app-side handler, not the feature |
+| No `@Published` navigation state | `viewState` is the ViewModel's only stored state |
+| `NavigationDestination` conforms to `Sendable, Hashable` | May cross actor boundaries; enables use in collections |
 | Names describe destinations, not events | Distinguishes navigation intent from action intent |
-| Feature never navigates itself | Parent owns the navigation stack |
-| Exhaustive `switch` at call site | All exit paths are handled explicitly |
+| Feature never navigates itself | The app owns the navigation stack |
+| Exhaustive `switch` in the handler | All exit paths are handled explicitly |

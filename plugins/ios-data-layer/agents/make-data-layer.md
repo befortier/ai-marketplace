@@ -44,6 +44,7 @@ Available references:
 - `mapper.md` — Mapper conventions (planning phase, terminal vs soft-default)
 - `network-service.md` — Network service conventions (stateless struct, descriptors)
 - `store.md` — AsyncStream store conventions (actor, makeStream, continuations)
+- `record-mapping.md` — Record ↔ model conversion for persistent stores (two-way mapper)
 - `repository.md` — Repository conventions (thin orchestration)
 
 ## Workflow
@@ -111,6 +112,7 @@ Present what you found and confirm the domain name and package location with the
 2. Propose the store protocol and actor implementation
    - Use `AsyncStream.makeStream(of:)` pattern
    - Determine if it's a single-value store or collection store based on the domain
+   - If the store is persistent (record-backed), also read the `record-mapping.md` reference and propose the two-way record mapper
 3. Present to the user for approval
 4. On approval, generate the store files + tests
 5. Wait for user confirmation before moving on

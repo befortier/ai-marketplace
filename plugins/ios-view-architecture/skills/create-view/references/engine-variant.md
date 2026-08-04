@@ -92,17 +92,17 @@ public enum MyFlowAction: Sendable, Hashable {
 
 ### Exit rule
 
-- **Single exit** (e.g. "flow complete, close"): use a bare `onFinished: @MainActor () -> Void`. No `NavigationRequest` file needed.
-- **Multiple exits** (e.g. "finished" vs "go to cart details"): use a `NavigationRequest` enum:
+- **Single exit** (e.g. "flow complete, close"): use a payload-free `onAction: () async -> Void`. No `NavigationDestination` file needed.
+- **Multiple exits** (e.g. "finished" vs "go to cart details"): use a `NavigationDestination` enum:
 
 ```swift
-public enum MyFlowNavigationRequest: Sendable, Hashable {
+public enum MyFlowNavigationDestination: Sendable, Hashable {
     case finished
     case cartDetails(cartID: String)
 }
 ```
 
-The root view accepts `onFinished: @MainActor (MyFlowNavigationRequest) -> Void` and never navigates itself.
+The ViewModel takes `onAction: (MyFlowNavigationDestination) async -> Void` and never navigates itself — see [navigation-exit.md](navigation-exit.md).
 
 ### An in-memory ContextStore
 
@@ -132,7 +132,7 @@ Every server-driven enum (control type, tone, audience, mode) must have an `.unk
 ```
 Sources/MyFlow/
 ├── MyFlowRunView.swift              # Root composing view (BootstrapView idiom)
-├── MyFlowNavigationRequest.swift    # Only if multi-exit
+├── MyFlowNavigationDestination.swift # Only if multi-exit
 └── Views/
     ├── MyFlow/                      # Engine core (VM + ViewState + mapper + internals)
     │   ├── MyFlowRunViewModel.swift
@@ -182,4 +182,4 @@ Sources/MyFlow/
 | Actions carry intent, not ViewState | The ViewModel resolves intent → state; views stay dumb |
 | `ContextStore` via `Mutex`, not actor | VM calls it synchronously inside `handle()` |
 | `.unknown` on every server-driven enum | Forward-compat: new server payload must not crash old client |
-| Single exit → bare closure, multi-exit → `NavigationRequest` | Don't wrap one case in an enum |
+| Single exit → payload-free closure, multi-exit → `NavigationDestination` | Don't wrap one case in an enum |
