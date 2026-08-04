@@ -13,6 +13,12 @@ Combine multiple `AsyncStream` sources into a single mapped output stream using 
 - Mapping or enriching models by combining streams of related data
 - Producing a reactive stream that updates whenever either source emits a new value
 
+**When not to use:** to correlate two sources whose producers you own — first check the write order (see [Don't Join What You Can Order](#dont-join-what-you-can-order)).
+
+## Don't Join What You Can Order
+
+Before joining (or polling) to correlate a signal stream with the record it announces, check the producers. If the signal is emitted before the record is written, fix the write order at the producer — record first, then signal — and the join collapses to a single read on the signal. A poll/sleep/deadline loop in a consumer waiting for the second source to catch up is the smell that the producers' write order is wrong; fix it there, not in the join.
+
 ## Pattern
 
 ```swift
