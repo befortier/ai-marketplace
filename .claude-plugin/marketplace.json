@@ -183,7 +183,7 @@
     {
       "name": "swift-mocking",
       "description": "Using the swift-mocking package (@Mocked macro) to generate protocol mocks for Swift unit tests. Use when mocking protocols, stubbing dependencies, or asserting on invocations in Swift tests.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/swift-mocking",
       "author": {
         "name": "befortier"

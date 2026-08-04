@@ -82,6 +82,11 @@ call count alone.
 
 - **`@Mocked` by default.** Only hand-write a mock (`@MockedMembers`) when the macro
   can't apply — e.g. protocol inheritance. See references/advanced-mocks.md.
+- **Every injected protocol gets `@Mocked`** — mappers, providers, stream getters
+  included, not just services.
+- **Replace hand-written recorders when touched.** A test that hand-rolls a
+  spy/recorder for a protocol gets migrated to the generated mock as part of the
+  change.
 - **Prefer checked implementations** (`.returns`/`.invokes`). Use the `unchecked`
   variants only for genuinely non-`Sendable` types.
 - **Reset static mocks** between tests: `SomeMock.resetMockedStaticMembers()`.
