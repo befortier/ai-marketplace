@@ -51,6 +51,8 @@ enum ContentAction: Sendable {
 
 Name actions after **what the user did**, not what should happen next. The ViewModel decides the consequence.
 
+**Payloads are complete.** An action carries everything its handler needs — often literally the row's view state (`case rowTapped(RowViewState)`), or the exact fields (`case rowTapped(type: RowType, id: String)`). The ViewModel pulls what it needs off the action's associated values instead of re-deriving it from published state.
+
 ## Action Wrapping
 
 Parent views wrap child actions into their own enum so the ViewModel receives a single, routable type:

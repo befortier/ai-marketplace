@@ -11,15 +11,13 @@ The ViewModel takes `onAction: (MyFeatureAction) async -> Void` at init and awai
 private let onAction: (MyFeatureAction) async -> Void
 
 func onRowTapped(_ row: RowViewState) async {
-    viewState.successValue?.isPendingAction = true
-    await onAction(.open(row.route))
-    viewState.successValue?.isPendingAction = false
+    await onAction(.open(.detail(id: row.id)))
 }
 ```
 
 | Property | Why |
 |----------|-----|
-| `async` | The ViewModel can await completion and render a pending state meanwhile (see [loading-states.md](loading-states.md#in-place-success-mutation-successvalue)) |
+| `async` | The ViewModel can await completion of the action before returning |
 | Non-throwing | Not every action can fail, and failure policy doesn't belong to the feature — the app-side handler owns it |
 | One closure | Every exit goes through `onAction` — no per-destination closures, no published requests |
 
@@ -50,15 +48,13 @@ enum HeaderAction {
 }
 ```
 
-Rows arrive from the Mapper with their destination pre-resolved (see [mapper.md](mapper.md#routes-resolve-at-map-time)) — the ViewModel forwards `row.route`, never deriving a destination from domain values.
-
 ## Handling in the App
 
-The composer wires `onAction` to a dedicated **NavigationHandler** — a small app-side type that switches exhaustively over the actions, composes the destination screen, and owns per-destination failure policy (e.g. showing a toast when a destination fails to open). The feature has no knowledge of what happens next. See the `ios-composition` skill for the handler shape.
+The composer wires `onAction` to a `DefaultNavigationHandler` — a small type in the main app, next to the composition, that switches exhaustively over the navigation enum and performs the push/present/dismiss (and any failure toast) itself. The feature has no knowledge of what happens next. See the `ios-composition` skill for the handler shape.
 
 ```swift
 // Composition layer
-let handler = MyFeatureNavigationHandler(...)
+let handler = DefaultNavigationHandler(...)
 let viewModel = MyFeatureView.ViewModel(
     ...,
     onAction: { await handler.handle($0) }

@@ -146,7 +146,7 @@ Stateless leaves — recorders, vendor clients wrapping static APIs — are cons
 
 Composition is wiring + navigation, so there is nothing to unit-test: a test that only asserts "the graph builds" or "this field is wired" is low value and churns on every refactor. More importantly, the *temptation* to write a composition test is a signal — if a composer has behavior worth asserting, that behavior is logic that leaked into composition. Move it to a use case, view model, or repository, and test it there. Keep the composition layer test-free.
 
-One nuance sits **below** the composer: the navigation handler (see [The navigation handler](#the-navigation-handler)) owns per-destination policy and *is* unit-tested.
+The navigation handler (see [The navigation handler](#the-navigation-handler)) sits below the composer and follows the same rule — it performs navigation effects; logic that wants a test belongs elsewhere.
 
 ## Navigation belongs to composition, only
 
@@ -178,27 +178,46 @@ enum ProductListViewComposer {
 
 ## The navigation handler
 
-When a feature emits an async `onAction` closure, the composer wires it to a dedicated **NavigationHandler** — a small app-side type, closure-injected (or generic over its dependencies) so it is unit-testable. The handler switches exhaustively over the feature's actions, composes each destination, and owns per-destination failure policy (e.g. a destination that fails to resolve shows a toast):
+The ViewModel splits view actions in two:
+
+- **Internal** — handled inside the ViewModel (archiving a row is internal state; no navigation).
+- **External navigation** — bubbled out as `.navigation(NavigationRequest)`, where `NavigationRequest` models *only* the external destinations, so the handler can switch over them exhaustively.
 
 ```swift
-struct MyFeatureNavigationHandler {
-    let pushDetail: (String) async throws -> Void
-    let dismiss: @MainActor () -> Void
-    let showToast: @MainActor (String) -> Void
-
-    func handle(_ action: MyFeatureAction) async {
-        switch action {
-        case .open(.detail(let id)):
-            do { try await pushDetail(id) }
-            catch { await showToast(String(localized: "Couldn't open this item.")) }
-        case .dismissed:
-            await dismiss()
-        }
+// ViewModel
+func handleContentAction(_ action: ContentAction) async {
+    switch action {
+    case .archiveTapped(let row):
+        await archiveItem(row.id)                          // internal — no navigation
+    case .rowTapped(let row):
+        await onAction(.navigation(.detail(id: row.id)))   // external — bubbled out
     }
 }
 ```
 
-The composer builds the handler and passes `{ await handler.handle($0) }` as the feature's `onAction`. Nuance to rule 8: the handler sits **below** the composer — the composer stays test-free, while the handler owns policy and is unit-tested by injecting its closures and asserting the per-destination behavior.
+A `DefaultNavigationHandler` in the main app — where the composition lives — handles the enum. The effects (push, present, dismiss, toast) happen right there, inline or as private funcs:
+
+```swift
+@MainActor
+final class DefaultNavigationHandler {
+    private let session: AppSession
+    private let navigator: Navigator
+
+    func handle(_ request: MyFeatureNavigationRequest) async {
+        switch request {
+        case .detail(let id):
+            do { navigator.push(try await DetailComposer.make(session: session, id: id)) }
+            catch { showToast(String(localized: "Couldn't open this item.")) }
+        case .support:
+            navigator.present(SupportComposer.make(session: session))
+        }
+    }
+
+    private func showToast(_ message: String) { ... }
+}
+```
+
+The composer builds the handler and passes `{ await handler.handle($0) }` as the feature's navigation closure.
 
 ## Packages just expose raw initializers
 

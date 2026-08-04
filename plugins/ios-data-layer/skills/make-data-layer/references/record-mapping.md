@@ -73,15 +73,15 @@ enum ItemKindRecordValue: String {
 
 Never write `record.kind = "standard"` in the encode path and `switch record.kind { case "standard": ... }` in the decode path.
 
-## Encode Failures Get Logged
+## Encode Failures Are Analytics Events
 
-When encoding for storage can fail (e.g. JSON-encoding a payload field), don't swallow it — log at the store and skip the write; a silently dropped record is undebuggable:
+When encoding for storage can fail (e.g. JSON-encoding a payload field), don't swallow it — record an analytics event at the store and skip the write, so the failure is visible in production:
 
 ```swift
 do {
     realm.add(try mapper.record(from: model), update: .modified)
 } catch {
-    logger.error("Failed to encode record \(model.id): \(error)")
+    analytics.recordEncodeFailure(id: model.id, error: error)
 }
 ```
 
@@ -96,7 +96,7 @@ Records are thread-confined, so the mapping protocol can't be checked `Sendable`
 | One mapper owns both directions | Split directions drift apart silently |
 | Protocol + struct — never `init(record:)` extensions | Keeps conversion injectable and testable |
 | Kind strings via shared raw-value enums | Write and parse can't diverge |
-| Encode failures are logged, not swallowed | A dropped write must leave a trace |
+| Encode failures are analytics events, not swallowed | Dropped writes must be visible in production |
 | `@Mocked(sendableConformance: .unchecked)` with a rationale comment | Records are thread-confined; the compiler can't check it |
 
 ## Testing
