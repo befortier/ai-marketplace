@@ -35,20 +35,7 @@ protocol Dependency: Sendable {}
 ```
 
 Use `.unchecked` only when concurrency-safety can't be checked by the compiler but
-you can guarantee it. The canonical case: protocols trafficking **thread-confined
-records** (e.g. Realm objects). The records live on one actor and Swift 6 makes any
-cross-domain move a compile error, so the guarantee holds by construction. Document
-the rationale in a comment at the annotation:
-
-```swift
-/// `.unchecked`: `ItemRecord` is thread-confined to the store's actor and Swift 6
-/// rejects any cross-actor move, so unchecked Sendable is safe here.
-@Mocked(sendableConformance: .unchecked)
-protocol ItemRecordMapping {
-    func model(from record: ItemRecord) throws -> Item
-    func record(from model: Item) throws -> ItemRecord
-}
-```
+you can guarantee it.
 
 ## Actor / @MainActor protocols
 

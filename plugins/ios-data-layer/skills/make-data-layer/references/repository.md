@@ -54,25 +54,6 @@ public struct DefaultPointPassRepository: PointPassRepository {
 }
 ```
 
-## Local-First, Future-Contract
-
-When the remote endpoint doesn't exist yet, keep the repository shaped for the day it does. Two options:
-
-1. **Service mirrors the future remote contract** — going remote is additive:
-
-```swift
-public func markSeen(_ ids: Set<PointPassLanding.ID>) async throws {
-    try await service.markSeen(ids)   // future remote call — already in place
-    try await store.markSeen(ids)     // local write
-}
-```
-
-The service never writes the local store — the repository owns the ordering.
-
-2. **Omit the service entirely** until the endpoint lands — the repository is store-only, and adding the service later is one property + one call.
-
-Batch mutations are `Set<ID>` end-to-end (caller → repository → service/store) so a future batch endpoint slots in without signature churn.
-
 ## Where It Lives
 
 ```

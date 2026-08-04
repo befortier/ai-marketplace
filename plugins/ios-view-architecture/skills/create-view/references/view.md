@@ -85,17 +85,17 @@ struct MyFeatureContentView: View {
 }
 ```
 
-The ViewModel receives one handler per layer — handlers are `async` (see [view-model.md](view-model.md#handlers-are-async-the-view-owns-task-lifetimes)):
+The ViewModel receives one handler per layer:
 
 ```swift
-func handleContentViewEvent(_ event: MyFeatureContentViewEvent) async {
+func handleContentViewEvent(_ event: MyFeatureContentViewEvent) {
     switch event {
     case .headerEvent(let action):
-        await onHeaderAction(action)
+        onHeaderAction(action)
     case .contentEvent(let action):
-        await onContentAction(action)
+        onContentAction(action)
     case .contactSupportTapped:
-        await onAction(.open(.support))
+        onFinished(.support)
     }
 }
 ```
@@ -107,24 +107,29 @@ The root view is the only view that holds a `@StateObject` ViewModel. It is resp
 1. Owning the ViewModel
 2. Switching on loading state
 3. Wiring child `onAction`/`onEvent` closures to the ViewModel
-4. Owning task lifetimes — `.task(id:)` for observation, `Task { }` per action
-
-Navigation exit is **not** the root view's job: the composer injects the async `onAction` exit closure into the ViewModel directly (see [navigation-exit.md](navigation-exit.md)).
+4. Accepting an `onFinished` closure for navigation exit
 
 The ViewModel **must** be injected as an `@autoclosure` — `viewModel: @autoclosure @escaping () -> ViewModel`.
 
 ```swift
 public struct MyFeatureView: View {
     @StateObject private var viewModel: ViewModel
-    @State private var loadAttempt = 0
+    private let onFinished: @MainActor (NavigationRequest) -> Void
 
-    public init(viewModel: @autoclosure @escaping () -> ViewModel) {
+    public init(
+        viewModel: @autoclosure @escaping () -> ViewModel,
+        onFinished: @escaping @MainActor (NavigationRequest) -> Void
+    ) {
         self._viewModel = StateObject(wrappedValue: viewModel())
+        self.onFinished = onFinished
     }
 
     public var body: some View {
         content
-            .task(id: loadAttempt) { await viewModel.start() }
+            .onReceive(viewModel.$pendingNavigation.compactMap { $0 }) { request in
+                viewModel.pendingNavigation = nil
+                onFinished(request)
+            }
     }
 
     @ViewBuilder
@@ -135,16 +140,19 @@ public struct MyFeatureView: View {
         case .success(let viewState):
             MyFeatureContentView(
                 viewState: viewState.content,
-                onEvent: { event in Task { await viewModel.handleContentViewEvent(event) } }
+                onEvent: { viewModel.handleContentViewEvent($0) }
             )
-        case .failure:
-            ErrorView(onRetry: { loadAttempt += 1 })
+        case .failure(let errorViewState):
+            ErrorView(
+                viewState: errorViewState,
+                onRetry: { Task { await viewModel.retry() } }
+            )
         }
     }
 }
 ```
 
-This switches over `FailableLoadingState` (`.loading` / `.success` / `.failure`). The `.failure` case is a real, renderable state — an `ErrorView` with a retry affordance — not a fall-through; its payload is a marker, and the error copy lives inline in `ErrorView` (see [loading-states.md](loading-states.md#the-failure-payload-is-a-marker-copy-lives-in-the-view)). Retry bumps `loadAttempt`, which restarts `start()` through a fresh `.task(id:)` identity — the ViewModel stores no task. A feature that can't fail (its parent renders failure) uses `LoadingState` with just `.loading` / `.completed` instead.
+This switches over `FailableLoadingState` (`.loading` / `.success` / `.failure`). The `.failure` case is a real, renderable state — an `ErrorView` with a retry affordance — not a fall-through (see [loading-states.md](loading-states.md#the-failure-case-is-a-real-renderable-view-state)). A feature that can't fail (its parent renders failure) uses `LoadingState` with just `.loading` / `.completed` instead.
 
 No child view below this point knows about the ViewModel, navigation, or loading state.
 
@@ -206,7 +214,7 @@ MyFeature/
 ├── MyFeatureView.swift                    # Root composing view
 ├── MyFeatureViewModel.swift
 ├── MyFeatureViewState.swift               # Top-level state (may wrap content state)
-├── MyFeatureNavigationDestination.swift   # Omit for single-exit features
+├── MyFeatureNavigationRequest.swift       # Omit for single-exit features
 ├── Mapper/
 │   ├── MyFeatureViewStateMapper.swift
 │   └── DefaultMyFeatureViewStateMapper.swift

@@ -25,32 +25,6 @@ func onRowTapped(_ row: RowViewState) async {
 
 **Single exit** — a feature with exactly one way out uses a payload-free `onAction: () async -> Void`. No enum, no extra file.
 
-## No Published Navigation State
-
-Navigation intent is not view state. Never publish a pending request and relay it through the view:
-
-```swift
-// Don't — published request + nil-reset + view relay
-@Published var pendingNavigation: MyFeatureNavigationDestination?
-
-func closeTapped() {
-    pendingNavigation = .support
-}
-// ...and in the view:
-.onChange(of: viewModel.pendingNavigation) { request in
-    guard let request else { return }
-    viewModel.pendingNavigation = nil
-    onFinished(request)
-}
-
-// Do — await the injected closure directly
-func onCloseTapped() async {
-    await onAction(.open(.support))
-}
-```
-
-The published shape adds a second stored property, a nil-reset dance, and a view relay — all replaced by one awaited closure. `viewState` stays the ViewModel's only stored state (see [view-model.md](view-model.md#viewstate-is-the-only-stored-state)).
-
 ## NavigationDestination Enum
 
 Navigation payloads are a `Sendable, Hashable` enum. Names describe **where to go**, not what happened:

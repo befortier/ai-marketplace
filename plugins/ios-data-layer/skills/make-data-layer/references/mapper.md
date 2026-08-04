@@ -119,14 +119,10 @@ public struct QuestSectionMapper: QuestSectionMapping {
 
 ## Error Handling
 
-Protocol signatures use plain `throws` — never typed throws. The error enum stays `internal`: it exists for reason codes, not for callers to switch on.
+Define typed errors for terminal failures:
 
 ```swift
-// Don't — typed throws on the protocol boundary
-func map(_ dto: PointPassLandingDTO) throws(PointPassLandingMappingError) -> PointPassLanding
-
-// Do — untyped throws; internal enum for reason codes
-enum PointPassLandingMappingError: Error, Hashable {
+public enum PointPassLandingMappingError: Error, Hashable {
     case missingLandingPage
     case missingProgress
     case invalidDate(String)
@@ -136,19 +132,6 @@ enum PointPassLandingMappingError: Error, Hashable {
 - **Terminal**: `throw` when a missing/invalid field makes the whole model useless
 - **Soft-default**: use `?? .fallback` for enums, `nil` for optional URLs/dates
 - **Skip item**: return `nil` from item mapper + `compactMap` on the collection
-
-## Map Copy Verbatim
-
-User-facing strings pass through unchanged. `?? .fallback` is for enums only — no `nonEmpty` collapsing, no trimming, no defaulting of copy:
-
-```swift
-// Don't — copy massaged in the mapper
-title: dto.title.nonEmpty ?? "Untitled"
-
-// Do — copy verbatim; enums get the fallback treatment
-title: dto.title,
-status: mapStatus(dto.status) ?? .fallback
-```
 
 ## Naming
 
@@ -165,8 +148,6 @@ status: mapStatus(dto.status) ?? .fallback
 | `@Mocked` protocol | Auto-generates test mocks |
 | String→enum here, not in DTO | DTOs stay stable; mapper absorbs change |
 | `?? .fallback` not `?? .specificCase` | Single source of truth for soft defaults |
-| Copy maps verbatim | The mapper isn't a copywriter |
-| Plain `throws` on the protocol; error enum `internal` | Callers propagate; reason codes are diagnostics, not API |
 | `compactMap` for optional items | Gracefully skip invalid collection entries |
 | Defaults in init | Callers don't need to wire sub-mappers manually |
 | Present mapping plan before generating | User can intervene on terminal vs soft-default decisions |

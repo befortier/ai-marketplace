@@ -45,7 +45,7 @@ For sub-views, place them under `Views/` — see [File Structure](#file-structur
 - No published navigation state; navigation payloads are a `NavigationDestination` enum (`Sendable, Hashable`)
 - Feature never navigates itself
 
-**3. Mapper** — Read [references/mapper.md](references/mapper.md). Protocol + default impl; `Sendable`; domain in, view state out; rows arrive pre-routed; injected into ViewModel.
+**3. Mapper** — Read [references/mapper.md](references/mapper.md). Protocol + default impl; `Sendable`; domain in, view state out; injected into ViewModel.
 
 **4. ViewModel** — Read [references/view-model.md](references/view-model.md). `@MainActor final class ObservableObject`; `@Published private(set) viewState` is the **only** stored state; dependencies as protocols; async handlers, one per view layer — the view owns task lifetimes.
 

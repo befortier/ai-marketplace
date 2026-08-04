@@ -80,8 +80,6 @@ func activeItemsStream() async -> AsyncStream<[Item]> {
 func activeItemsStream() async throws -> AsyncStream<[Item]>
 ```
 
-Opening the database is a reusable use case (e.g. an `OpenRealmUseCase` in the storage infrastructure package — see the `ios-use-case` skill), not per-store boilerplate.
-
 ## Persistent Store Rules
 
 - **Actor-isolated end to end.** No `nonisolated` mutation paths, no implicitly-unwrapped snapshots captured outside the actor.

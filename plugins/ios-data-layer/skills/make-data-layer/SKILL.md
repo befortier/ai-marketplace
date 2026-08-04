@@ -94,25 +94,6 @@ Each reference file above contains a **Testing** section with layer-specific tes
 - Record mapping: round-trip + unknown-kind tests (see record-mapping.md)
 - Repository: orchestration + error propagation tests (see repository.md)
 
-## Local-First, Future-Contract
-
-When the remote endpoint doesn't exist yet, pick one:
-
-- **Mirror the future contract.** The service protocol matches the remote API you expect, so going remote is additive: the repository calls `try await service.markSeen(ids)` then `store.markSeen(ids)` — the service never writes the local store.
-- **Omit the service entirely** until the endpoint lands.
-
-Batch mutations are `Set<ID>` end-to-end so a future batch endpoint slots in without signature churn. See [references/repository.md](references/repository.md) for the repository shape.
-
-## Adapters & Observers
-
-Stateless adapters over vendor SDKs and system APIs are structs that translate to the domain:
-
-- Emit domain-level change events (`.initial` / `.ready` / `.noLongerPending`), not raw snapshots — consumers must never reconstruct state from a stream.
-- Expose a `currentlyPending()`-style current-value read alongside the stream.
-- A poll/sleep/join-timeout used to correlate two sources means the producers' write order is wrong — fix it at the producer (see the `ios-join-async-stream` skill).
-- Wire payloads (raw `Data`) stay `package`-access.
-- Inject `UserDefaults` (default `.standard`) — never reach for the singleton inline.
-
 ## File Organization
 
 ```

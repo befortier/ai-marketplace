@@ -97,31 +97,6 @@ struct SomeViewModel {
 
 Notice the call site reads as `toggleUserReaction(for: userId)` — the `callAsFunction()` method allows invoking the use case like a function directly on the property.
 
-## Bootstrap Use Cases
-
-A scope's bootstrap use case starts the container's long-lived work and **is** its lifetime owner — no separate starter or observation types. It idempotently stores its own loop task into the container's lock (store-only-if-nil), and the first authenticated surface invokes it once:
-
-```swift
-struct DefaultBootstrapFeatureUseCase: BootstrapFeatureUseCase {
-    private let container: FeatureContainer
-
-    init(container: FeatureContainer) {
-        self.container = container
-    }
-
-    func callAsFunction() {
-        container.subscription.withLock { task in
-            guard task == nil else { return }   // idempotent — a second call is a no-op
-            task = Task {
-                // observe a stream and feed the container's store
-            }
-        }
-    }
-}
-```
-
-See the `ios-container` skill for the container half of this pattern.
-
 ## Reusable Infrastructure Use Cases
 
 Infrastructure helpers are use cases too — the pattern isn't limited to feature logic. A reusable `OpenRealmUseCase` in the storage package is the canonical example: one protocol, one `Default` struct, injected wherever a store needs to open the database.
