@@ -64,6 +64,45 @@ The wiring that *builds* those dependencies lives in a **builder** — itself a 
 
 Hold in the session **only what must live for the whole session** — live state: a current-user store, a run-state store, a socket subscription (see the `ios-container` skill). Audit each held thing: if it carries no live state and is cheap to rebuild, it does not belong in the session — build it on demand instead (next section).
 
+## AppSession is optional — don't over-apply
+
+The app session is the default scope owner **only when the app has no DI root**. If the host app already has one (e.g. Factory), do **not** introduce an AppSession beside it — two scope owners is one too many. Instead:
+
+- Register exactly **one** object in the existing DI root: the feature container.
+- Compose everything else via `Type+Init.swift` convenience initializers over the container (next section).
+- The existing DI root stays the app-lifetime scope owner.
+
+```swift
+// Existing DI root (Factory) — one registration, the container:
+extension Container {
+    var myFeatureContainer: Factory<MyFeatureContainer> {
+        self { MyFeatureContainer(store: InMemoryMyFeatureStore()) }.cached
+    }
+}
+```
+
+## The `+Init` convention
+
+A composed type's wiring lives in `TypeName+Init.swift` in the app target — a convenience initializer over the feature container. Not a bespoke per-feature composer file, not in the package:
+
+```swift
+// MyFeatureViewModel+Init.swift (app target)
+extension MyFeatureView.ViewModel {
+    convenience init(
+        container: MyFeatureContainer,
+        onAction: @escaping (MyFeatureAction) async -> Void
+    ) {
+        self.init(
+            getModelStream: DefaultGetModelStreamUseCase(store: container.store),
+            mapper: DefaultMyViewStateMapper(routeMapping: DefaultRouteMapping()),
+            onAction: onAction
+        )
+    }
+}
+```
+
+Bootstrap wiring follows the same convention: `DefaultBootstrapFeatureUseCase+Init.swift` holds `init(container:)` for the bootstrap use case.
+
 ## Composers take the app session, not a bag of fields
 
 A composer's signature is **`(session, local state, closures)`**. Read the held containers and clients off the session *inside* the composer — never thread them in as separate parameters. A composer that takes six or nine individual session fields is the smell this rule exists to kill: take the session and read what you need.
@@ -101,9 +140,13 @@ extension AppSession {
 
 A composer then calls `session.makeOrderService()` instead of re-deriving it inline. These are pure factories over the session — they take no extra state and store nothing. This is the dividing line: **held** = live session state (in the session, via a container); **convenience-initialized** = stateless leaf deps (an `extension` factory, built per use).
 
+Stateless leaves — recorders, vendor clients wrapping static APIs — are constructed inline at each use site (or inside a `+Init`). Never register them as `.cached` DI entries: caching a stateless struct buys nothing and grows the root.
+
 ## Don't unit-test composition
 
 Composition is wiring + navigation, so there is nothing to unit-test: a test that only asserts "the graph builds" or "this field is wired" is low value and churns on every refactor. More importantly, the *temptation* to write a composition test is a signal — if a composer has behavior worth asserting, that behavior is logic that leaked into composition. Move it to a use case, view model, or repository, and test it there. Keep the composition layer test-free.
+
+One nuance sits **below** the composer: the navigation handler (see [The navigation handler](#the-navigation-handler)) owns per-destination policy and *is* unit-tested.
 
 ## Navigation belongs to composition, only
 
@@ -132,6 +175,30 @@ enum ProductListViewComposer {
 ```
 
 `ProductListView` knows nothing about `ProductDetailsPage` or `SupportView`. It emits a `navigationRequest`; the composer maps each case to the destination composer (passing `session` + the local state each needs). The view-architecture skill dictates how the view surfaces that request.
+
+## The navigation handler
+
+When a feature emits an async `onAction` closure, the composer wires it to a dedicated **NavigationHandler** — a small app-side type, closure-injected (or generic over its dependencies) so it is unit-testable. The handler switches exhaustively over the feature's actions, composes each destination, and owns per-destination failure policy (e.g. a destination that fails to resolve shows a toast):
+
+```swift
+struct MyFeatureNavigationHandler {
+    let pushDetail: (String) async throws -> Void
+    let dismiss: @MainActor () -> Void
+    let showToast: @MainActor (String) -> Void
+
+    func handle(_ action: MyFeatureAction) async {
+        switch action {
+        case .open(.detail(let id)):
+            do { try await pushDetail(id) }
+            catch { await showToast(String(localized: "Couldn't open this item.")) }
+        case .dismissed:
+            await dismiss()
+        }
+    }
+}
+```
+
+The composer builds the handler and passes `{ await handler.handle($0) }` as the feature's `onAction`. Nuance to rule 8: the handler sits **below** the composer — the composer stays test-free, while the handler owns policy and is unit-tested by injecting its closures and asserting the per-destination behavior.
 
 ## Packages just expose raw initializers
 
