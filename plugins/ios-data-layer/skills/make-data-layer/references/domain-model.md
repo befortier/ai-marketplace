@@ -60,6 +60,25 @@ public enum RewardColor: Sendable, Hashable {
 
 Usage in the mapper: `mapColor(dto.color) ?? .fallback` — not `?? .blue`.
 
+## Shape Decisions
+
+- **Prefer `Model?` over result wrappers.** An absent value with a one-line doc beats a `ModelLookupResult`-style wrapper type.
+- **IDs are `let id: String`, referenced as `Model.ID`.** `Identifiable` provides the alias — no ID newtypes.
+- **Domain models are not `Codable`.** Wire coding belongs to DTOs and storage records.
+- **Prefer a `source` enum with associated values over parallel optional fields:**
+
+```swift
+// Don't — parallel optionals that can half-populate
+public let remoteID: String?
+public let localDraftID: String?
+
+// Do — one source; invalid combinations can't exist
+public enum Source: Sendable, Hashable {
+    case remote(id: String)
+    case localDraft(id: String)
+}
+```
+
 ## Nested Types via Extensions
 
 Split complex models across files using extensions:
@@ -97,6 +116,9 @@ extension PointPassLanding {
 | Value types only (struct/enum) | Predictable equality and copying |
 | `unknown(String)` case on enums | Handles unrecognized API values without crashing |
 | `.fallback` static on soft-defaultable enums | Single source of truth for default value |
+| `Model?` over result-wrapper types | Absence is already expressive |
+| Not `Codable` | Wire coding belongs to DTOs and records |
+| `source` enum over parallel optionals | Invalid combinations can't exist |
 
 ## Testing
 
