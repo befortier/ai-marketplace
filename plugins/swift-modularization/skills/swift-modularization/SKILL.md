@@ -27,6 +27,23 @@ private helper, a nested enum, the type's own `extension`s — but a second top-
 that stands on its own gets its own file. If a file accretes unrelated types, split it.
 This keeps types findable by filename and packages reviewable by directory.
 
+## Compatibility is sacred
+
+- **Never raise a package's platform floors.** A convenient API is not a reason to bump
+  `platforms:` — the app's minimum OS is the contract.
+- **Never introduce APIs above the app's minimum OS.** `ImageResource` is iOS 17+; on an
+  iOS 16 floor use `Image(_:bundle:)` instead.
+- If the dependency graph seems to force a bump, it doesn't: scope the dependency with
+  `.when(platforms:)` target conditions, or rewrite the API usage.
+
+## Package hygiene
+
+- **Wire payloads stay `package`-access.** Raw `Data` blobs passed between targets are
+  `package`, never `public` — no other package should decode them.
+- **Register string catalogs with the i18n pipeline.** A package that ships its own
+  `.xcstrings` catalog must be added to the repo's localization config, or its strings
+  silently never get translated.
+
 ## Where to look
 
 Open the reference for what you're doing:
