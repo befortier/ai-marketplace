@@ -1,7 +1,7 @@
 {
   "name": "ios-view-architecture",
   "description": "iOS SwiftUI view architecture patterns including ViewState, ViewModel, Mapper, loading states, and navigation. Use when building new features or views in a SwiftUI project.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "befortier"
   },
