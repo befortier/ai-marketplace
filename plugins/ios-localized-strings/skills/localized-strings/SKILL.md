@@ -26,7 +26,8 @@ makes copy an input you can substitute in a test, instead of a bundle lookup you
 5. **Counts and percentages are closures, not format strings.**
 6. **Copy reaches views through the view state.** No view takes a `strings:` parameter.
 7. **The app fills it**, in `<Container>+Default.swift`, as `static var default`.
-8. **`.preview` lives beside its container, behind `#if DEBUG`.**
+8. **`.preview` lives beside its container, behind `#if DEBUG`** — and so does every
+   `#Preview` that reads it.
 
 ## Naming and file structure
 
@@ -198,15 +199,19 @@ extension HeaderStringContainer {
 #endif
 ```
 
-**`#Preview` blocks compile in Release.** A `#Preview` that references a `#if DEBUG`
-container fails the Release build:
+**Then wrap every `#Preview` that reads it in `#if DEBUG` too.** A `#Preview` body is still
+type-checked in Release, so an ungated one referencing a gated container fails the Release
+build:
 
 ```
 error: type 'UneditStringContainer' has no member 'preview'
 ```
 
-Build preview view states from literals instead, so `.preview` is reached only from tests.
-Don't wrap `#Preview` blocks in `#if DEBUG` to work around it.
+Nothing in Debug catches this — not the test suite, not the canvas — so it sits latent until
+someone builds Release or archives.
+
+The rule generalizes past previews: **anything inside `#if DEBUG` may only be referenced
+from inside `#if DEBUG`.** Gate the helper, gate every use of it.
 
 ## Injecting collaborators, not just strings
 
@@ -262,7 +267,8 @@ copy is destructive and two of the steps are easy to get wrong.
   those strings belong to some surface.
 - A container declared in a target-level `Strings/` folder while the view that renders it
   lives three folders away → rule 2.
-- `.preview` referenced from a `#Preview` block → the Release build is broken.
+- `.preview` referenced from a `#Preview` that isn't itself `#if DEBUG` → the Release build
+  is broken, and only a Release build will tell you.
 - A `static let default` in the package → the package is localizing itself; that belongs in
   the app.
 
