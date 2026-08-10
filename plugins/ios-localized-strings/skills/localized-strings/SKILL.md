@@ -213,25 +213,6 @@ someone builds Release or archives.
 The rule generalizes past previews: **anything inside `#if DEBUG` may only be referenced
 from inside `#if DEBUG`.** Gate the helper, gate every use of it.
 
-## Injecting collaborators, not just strings
-
-Once a mapper takes a container, its sub-mappers need one too. Require them — no
-`(any Mapper)? = nil` with an internal fallback, which only exists because a default
-argument can't read `strings`.
-
-```swift
-init(
-    strings: FeatureChatStringContainer,
-    exportButtonMapper: any ExportButtonViewStateMapper,
-    rowMapper: any ShortItemRowViewStateMapper
-)
-```
-
-When those protocols are internal the app can't pass them, so the package's **public
-convenience init is the single place the production graph is wired** — alongside the
-use-case defaults already there. Sub-mappers are injected as `any Protocol`, never as a
-concrete type, so they can be stubbed.
-
 ## When a catalog stays
 
 - **Another process renders the copy.** A widget or notification extension can't read the
@@ -239,24 +220,6 @@ concrete type, so they can be stubbed.
   there.
 - **The target's entire job is mapping to strings.** Injecting copy into a
   stage-to-string mapper leaves an empty target; leave it alone.
-
-## Migrating a package catalog
-
-Deleting a catalog throws away every translation in it. Follow these steps in order; the
-copy is destructive and two of the steps are easy to get wrong.
-
-1. **Copy the package catalog's entries into the app catalog before deleting it**, with
-   their existing translations and plural variations. Do not re-extract them as English and
-   wait on the translation pipeline — that ships English to every locale in the meantime.
-2. **Skip keys the app catalog already has.** Drop them rather than overwriting; the app's
-   value is the one already reviewed.
-3. **Append the new keys. Never re-sort the app's `.xcstrings`.** Xcode orders that file
-   with a locale-aware collation you cannot reproduce, so a byte-order sort rewrites every
-   entry in the file. Xcode slots appended keys into place on its next extraction.
-4. **Delete the package catalog**, and remove
-   `resources: [.process("Localizable.xcstrings")]` from `Package.swift` if that target
-   declared it. Some targets rely on SwiftPM auto-detecting the catalog and declare nothing.
-5. **Verify no `bundle: .module` or `NSLocalizedString` remains** in the target.
 
 ## Smells
 
