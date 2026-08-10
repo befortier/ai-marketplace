@@ -1,12 +1,12 @@
 ---
 name: localized-strings
-description: String containers: feature packages take pre-localized copy from the host app instead of shipping their own .xcstrings, one small container per surface. Use when a package target needs user-facing copy, removing a package catalog, or deciding where a string lives.
+description: String containers: feature packages take pre-localized copy from the app instead of shipping their own .xcstrings, one small container per surface. Use when a package needs user-facing copy, removing a package catalog, or deciding where a string lives.
 ---
 
 # String Containers
 
 A **string container** is a `Sendable` struct of already-localized copy that a feature
-package receives from the host app. Feature packages ship **no** `Localizable.xcstrings`.
+package receives from the app. Feature packages ship **no** `Localizable.xcstrings`.
 The app owns every string, in one catalog, translated once.
 
 A package catalog looks free and costs twice: the same key gets translated in two catalogs
@@ -21,7 +21,7 @@ makes copy an input you can substitute in a test, instead of a bundle lookup you
    type that renders it** — not in a target-level `Strings/` folder.
 3. **An aggregate container is pure composition.** It holds nested containers and nothing
    else. Nothing downstream takes the aggregate.
-4. **Take the smallest container that covers the consumer.** A mapper that derives one
+4. **Take the smallest container that covers the surface.** A mapper that derives one
    button takes that button's container, never the screen's.
 5. **Counts and percentages are closures, not format strings.**
 6. **Copy reaches views through the view state.** No view takes a `strings:` parameter.
@@ -37,14 +37,14 @@ makes copy an input you can substitute in a test, instead of a bundle lookup you
 | App-side filler | `LongToShortsChatStringContainer+Default.swift` |
 
 Each container sits next to the view or mapper it serves. Only screen-level copy with no
-single owning component — section titles, load-failure text, toasts — goes in the target's
+single owning surface — section titles, load-failure text, toasts — goes in the target's
 `Strings/` folder next to the aggregate.
 
 ```
 Sources/FeatureChat/
 ├── Strings/
 │   ├── FeatureChatStringContainer.swift        # aggregate: nested containers only
-│   ├── FeatureChatToastStringContainer.swift   # screen-level, no owning component
+│   ├── FeatureChatToastStringContainer.swift   # screen-level, no owning surface
 │   └── ErrorStringContainer.swift
 └── Views/
     ├── Header/
@@ -89,9 +89,9 @@ rides on the view state as data; don't add a container field for it.
 
 ## Inject the smallest container
 
-An aggregate exists for the host's convenience, not as a parameter type. Give each consumer
-the nested container it needs, so its dependencies read honestly and its tests construct
-three strings instead of thirty.
+An aggregate exists for the app's convenience, not as a parameter type. Give each mapper
+and view state the nested container it needs, so its dependencies read honestly and its
+tests construct three strings instead of thirty.
 
 ```swift
 // Wrong — the button mapper can now reach every string on the screen.
@@ -131,7 +131,7 @@ HeaderViewState(
 Text(viewState.selectClipsTitle)
 ```
 
-A view with no view state and no mapper — a leaf card the host builds directly — gets one
+A view with no view state and no mapper — a leaf card the app builds directly — gets one
 rather than a `strings:` parameter, with the container folded in at construction:
 
 ```swift
@@ -237,17 +237,21 @@ concrete type, so they can be stubbed.
 
 ## Migrating a package catalog
 
-Deleting a catalog throws away every translation in it unless you move them.
+Deleting a catalog throws away every translation in it. Follow these steps in order; the
+copy is destructive and two of the steps are easy to get wrong.
 
-- **Migrate the entries into the app catalog with their existing translations** (and plural
-  variations), rather than re-extracting as English and waiting on the pipeline. Keys the
-  app catalog already has are dropped, not overwritten.
-- **Never re-sort the app's `.xcstrings`.** Xcode orders it with a locale-aware collation
-  you can't reproduce; a byte-order sort rewrites every entry. Append new keys — Xcode
-  slots them in on its next extraction.
-- Drop the target's `resources: [.process("Localizable.xcstrings")]` from `Package.swift`
-  if it declared one. Some targets rely on SwiftPM auto-detecting the catalog and declare
-  nothing.
+1. **Copy the package catalog's entries into the app catalog before deleting it**, with
+   their existing translations and plural variations. Do not re-extract them as English and
+   wait on the translation pipeline — that ships English to every locale in the meantime.
+2. **Skip keys the app catalog already has.** Drop them rather than overwriting; the app's
+   value is the one already reviewed.
+3. **Append the new keys. Never re-sort the app's `.xcstrings`.** Xcode orders that file
+   with a locale-aware collation you cannot reproduce, so a byte-order sort rewrites every
+   entry in the file. Xcode slots appended keys into place on its next extraction.
+4. **Delete the package catalog**, and remove
+   `resources: [.process("Localizable.xcstrings")]` from `Package.swift` if that target
+   declared it. Some targets rely on SwiftPM auto-detecting the catalog and declare nothing.
+5. **Verify no `bundle: .module` or `NSLocalizedString` remains** in the target.
 
 ## Smells
 

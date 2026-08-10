@@ -46,7 +46,7 @@
     },
     {
       "name": "ios-localized-strings",
-      "description": "String containers: feature packages take pre-localized copy from the host app instead of shipping their own .xcstrings, one small container per surface. Use when a package target needs user-facing copy, removing a package catalog, or deciding where a string lives.",
+      "description": "String containers: feature packages take pre-localized copy from the app instead of shipping their own .xcstrings, one small container per surface. Use when a package needs user-facing copy, removing a package catalog, or deciding where a string lives.",
       "version": "1.0.0",
       "source": "./plugins/ios-localized-strings",
       "author": {
