@@ -1,0 +1,18 @@
+{
+  "name": "ios-localized-strings",
+  "description": "String containers: feature packages take pre-localized copy from the app instead of shipping their own .xcstrings, one small container per surface. Use when a package needs user-facing copy, removing a package catalog, or deciding where a string lives.",
+  "version": "1.0.0",
+  "author": {
+    "name": "befortier"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "localization",
+    "xcstrings",
+    "string-catalog",
+    "strings",
+    "plurals",
+    "injection"
+  ]
+}

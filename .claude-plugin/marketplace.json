@@ -45,6 +45,25 @@
       ]
     },
     {
+      "name": "ios-localized-strings",
+      "description": "String containers: feature packages take pre-localized copy from the app instead of shipping their own .xcstrings, one small container per surface. Use when a package needs user-facing copy, removing a package catalog, or deciding where a string lives.",
+      "version": "1.0.0",
+      "source": "./plugins/ios-localized-strings",
+      "author": {
+        "name": "befortier"
+      },
+      "keywords": [
+        "ios",
+        "swift",
+        "localization",
+        "xcstrings",
+        "string-catalog",
+        "strings",
+        "plurals",
+        "injection"
+      ]
+    },
+    {
       "name": "ios-package-context",
       "description": "Authoring per-package and per-target CLAUDE.md files for a modularized iOS app — blurb plus file structure, naming, and non-obvious gotchas only, never implementation detail or intention. Use when writing or slimming a package or target CLAUDE.md.",
       "version": "1.0.0",
